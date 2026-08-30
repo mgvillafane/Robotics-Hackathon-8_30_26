@@ -1,0 +1,8 @@
+* text=auto eol=lf
+
+# Robot meshes and trajectories are data, not text to be normalised.
+*.stl binary
+*.dae binary
+*.obj binary
+*.glb binary
+*.gltf binary
