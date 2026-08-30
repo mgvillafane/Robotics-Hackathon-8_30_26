@@ -1,0 +1,552 @@
+<title>Human-to-Arm Pipeline</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root {
+    --paper: #f4f5f2;
+    --paper-raised: #ffffff;
+    --ink: #1b1f23;
+    --muted: #5b6470;
+    --line: #d7dbde;
+    --accent: #d9550c;
+    --accent-ink: #ffffff;
+    --ok: #2f7d4f;
+    --warn: #b5860a;
+    --code-bg: #ecebe4;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #14171a;
+      --paper-raised: #1b1f23;
+      --ink: #ecedee;
+      --muted: #9aa3ac;
+      --line: #2a2f34;
+      --accent: #ff7a33;
+      --accent-ink: #14171a;
+      --ok: #55c584;
+      --warn: #e0b23a;
+      --code-bg: #1f2327;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #14171a;
+    --paper-raised: #1b1f23;
+    --ink: #ecedee;
+    --muted: #9aa3ac;
+    --line: #2a2f34;
+    --accent: #ff7a33;
+    --accent-ink: #14171a;
+    --ok: #55c584;
+    --warn: #e0b23a;
+    --code-bg: #1f2327;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .sheet {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 56px 24px 96px;
+  }
+
+  .titleblock {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 24px;
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 18px;
+    margin-bottom: 6px;
+  }
+  .titleblock h1 {
+    font-family: 'IBM Plex Sans Condensed', sans-serif;
+    font-weight: 700;
+    font-size: clamp(28px, 5vw, 40px);
+    letter-spacing: -0.01em;
+    margin: 0;
+    text-wrap: balance;
+  }
+  .titleblock .meta {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 12px;
+    color: var(--muted);
+    text-align: right;
+    white-space: nowrap;
+  }
+  .kicker {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 10px;
+  }
+  .dek {
+    color: var(--muted);
+    font-size: 17px;
+    max-width: 62ch;
+    margin: 18px 0 40px;
+  }
+
+  h2 {
+    font-family: 'IBM Plex Sans Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    margin: 52px 0 6px;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  h2 .num {
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--accent);
+    font-size: 15px;
+    font-weight: 500;
+  }
+  h3 {
+    font-family: 'IBM Plex Sans Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    margin: 28px 0 8px;
+    color: var(--ink);
+  }
+  p { max-width: 68ch; margin: 12px 0; }
+  .section-rule { border: none; border-top: 1px solid var(--line); margin: 52px 0 0; }
+
+  strong.term { color: var(--ink); font-weight: 600; }
+
+  .callout {
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    border-radius: 4px;
+    padding: 14px 18px;
+    margin: 18px 0;
+    font-size: 14.5px;
+  }
+  .callout .label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  code, pre {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 16px 18px;
+    font-size: 13px;
+    line-height: 1.55;
+    overflow-x: auto;
+    margin: 14px 0;
+  }
+  p code, li code {
+    background: var(--code-bg);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 0.88em;
+  }
+
+  .subsystems { display: flex; flex-direction: column; gap: 0; margin: 18px 0; }
+  .subsystem {
+    display: grid;
+    grid-template-columns: 34px 1fr;
+    gap: 14px;
+    padding: 16px 0;
+    border-top: 1px solid var(--line);
+  }
+  .subsystem:last-child { border-bottom: 1px solid var(--line); }
+  .subsystem .tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: var(--accent);
+    font-weight: 500;
+    padding-top: 2px;
+  }
+  .subsystem h4 {
+    font-family: 'IBM Plex Sans Condensed', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 4px;
+  }
+  .subsystem .owner {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .subsystem p { margin: 8px 0 0; font-size: 14.5px; }
+
+  .roadmap { display: flex; flex-direction: column; margin: 18px 0; }
+  .phase {
+    display: grid;
+    grid-template-columns: 92px 1fr;
+    gap: 18px;
+    position: relative;
+    padding-bottom: 26px;
+  }
+  .phase::before {
+    content: "";
+    position: absolute;
+    left: 45px;
+    top: 22px;
+    bottom: -4px;
+    width: 1px;
+    background: var(--line);
+  }
+  .phase:last-child::before { display: none; }
+  .phase .marker {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    text-align: right;
+    padding-top: 3px;
+  }
+  .phase .marker .n {
+    display: block;
+    width: 26px; height: 26px;
+    margin-left: auto;
+    border-radius: 50%;
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    font-weight: 500;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 4px;
+  }
+  .phase.current .marker .n { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .phase h4 { font-family: 'IBM Plex Sans Condensed', sans-serif; font-size: 16px; font-weight: 600; margin: 0 0 4px; }
+  .phase p { font-size: 14.5px; margin: 0; }
+  .phase .status {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+  }
+
+  table { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-family: 'IBM Plex Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 500; }
+  td.risk { font-weight: 500; }
+  .tablewrap { overflow-x: auto; }
+
+  figure { margin: 24px 0; }
+  figure svg { width: 100%; height: auto; display: block; }
+  figcaption { font-size: 13px; color: var(--muted); margin-top: 10px; max-width: 68ch; }
+
+  .stack-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px;
+    margin: 18px 0;
+  }
+  .stack-card {
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 14px 16px;
+  }
+  .stack-card .role {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .stack-card .pick { font-weight: 600; font-size: 14.5px; margin-bottom: 4px; }
+  .stack-card .why { font-size: 13px; color: var(--muted); }
+
+  ol.demo-script { padding-left: 22px; font-size: 14.5px; }
+  ol.demo-script li { margin: 6px 0; }
+
+  footer {
+    margin-top: 64px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+  }
+</style>
+
+<div class="sheet">
+
+  <div class="titleblock">
+    <h1>Human-to-Arm Pipeline</h1>
+    <div class="meta">v1.0 &middot; packaging line demo<br>video &rarr; pose &rarr; retarget &rarr; sim + hardware</div>
+  </div>
+  <p class="dek">Architecture and build plan for the interface that ties a worker's packaging-line footage, MediaPipe extraction, and the WebGL simulation of your actual arm into one tool &mdash; with the sim's own parameters (joint limits, speed, mounting offset, payload weight) exposed as live controls.</p>
+
+  <div class="callout">
+    <span class="label">revision &middot; scope</span>
+    The physical arm demo is kept but deprioritized for this pass (still in &sect;3/&sect;5 as an optional relay). The current priority is the loop in the title: <strong class="term">upload &rarr; MediaPipe &rarr; retarget &rarr; your simulated arm</strong>, with a parameter sandbox layered on top so the sim can be interrogated, not just replayed. See &sect;3.5 for what "playing with parameters" means concretely.
+  </div>
+
+  <p class="kicker">01 &nbsp;Feasibility</p>
+  <h2 style="margin-top:0"><span class="num">&mdash;</span>Yes, and the hard part is already identified</h2>
+  <p>Everything you've described is a well-trodden shape in robot learning: <strong class="term">video &rarr; human pose estimation &rarr; motion retargeting &rarr; robot execution</strong>, sometimes called learning-from-demonstration or visual imitation. MediaPipe for extraction and a WebGL rig for simulation are both proven choices. Nothing here requires new research to get a demo working end to end.</p>
+  <p>The genuinely hard part is not the interface &mdash; it's <strong class="term">retargeting</strong>: mapping a human arm's landmarks (more degrees of freedom, different proportions, a camera-relative coordinate frame) onto a 6-axis industrial arm's joint space. Treat that as its own subsystem with its own owner, not a detail inside the UI. The plan below scopes a first pass (geometric IK + smoothing) that's enough for a convincing demo, with room to grow into the actual optimization work later.</p>
+  <p>The three teams (extraction, simulation, hardware) can build in parallel right now if they agree on one thing first: the <strong class="term">joint-trajectory file format</strong> in section 3. That contract is what lets the interface below connect to all three without waiting on any of them to finish.</p>
+
+  <hr class="section-rule">
+  <p class="kicker">02 &nbsp;System shape</p>
+  <h2><span class="num">&mdash;</span>Five pieces, one clock</h2>
+  <p>The interface you're asking about isn't really "one interface embedding three others" &mdash; it's an <strong class="term">orchestrator</strong> that owns a single clock (the video's playback position) and pushes the same per-frame data to two independent consumers: the simulation, over <code>postMessage</code>, and the physical arm, over a WebSocket relay. Neither consumer needs to know the other exists.</p>
+
+  <figure>
+    <svg viewBox="0 0 720 300" role="img" aria-label="Video is processed offline by the perception and retargeting stages into a joint-trajectory file. The orchestrator UI in the browser reads that file on a video-driven clock and fans it out over postMessage to the simulation iframe and over WebSocket to the arm relay, which drives the physical arm.">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor"></path>
+        </marker>
+        <marker id="arrowAccent" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#d9550c"></path>
+        </marker>
+      </defs>
+
+      <!-- offline stage -->
+      <rect x="12" y="24" width="128" height="54" rx="5" fill="none" stroke="currentColor" opacity="0.85"></rect>
+      <text x="76" y="46" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="currentColor">mp4 source</text>
+      <text x="76" y="62" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity="0.6">packaging line</text>
+
+      <rect x="180" y="24" width="150" height="54" rx="5" fill="none" stroke="currentColor" opacity="0.85"></rect>
+      <text x="255" y="46" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="currentColor">MediaPipe extract</text>
+      <text x="255" y="62" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity="0.6">team 1 &middot; offline</text>
+
+      <rect x="370" y="24" width="150" height="54" rx="5" fill="none" stroke="currentColor" opacity="0.85"></rect>
+      <text x="445" y="46" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="currentColor">retarget + smooth</text>
+      <text x="445" y="62" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity="0.6">ML layer &middot; offline</text>
+
+      <line x1="140" y1="51" x2="178" y2="51" stroke="currentColor" marker-end="url(#arrow)"></line>
+      <line x1="330" y1="51" x2="368" y2="51" stroke="currentColor" marker-end="url(#arrow)"></line>
+
+      <line x1="445" y1="78" x2="445" y2="120" stroke="currentColor" marker-end="url(#arrow)"></line>
+      <text x="452" y="102" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity="0.7">writes</text>
+
+      <rect x="335" y="122" width="220" height="40" rx="5" fill="none" stroke="currentColor" stroke-dasharray="3 3"></rect>
+      <text x="445" y="146" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="currentColor">trajectory.json &nbsp;(schema, &sect;3)</text>
+
+      <line x1="445" y1="162" x2="445" y2="200" stroke="currentColor" marker-end="url(#arrow)"></line>
+      <text x="452" y="184" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity="0.7">reads, on video clock</text>
+
+      <!-- orchestrator hub -->
+      <rect x="300" y="202" width="290" height="56" rx="6" fill="none" stroke="#d9550c" stroke-width="1.6"></rect>
+      <text x="445" y="226" text-anchor="middle" font-family="IBM Plex Sans Condensed, sans-serif" font-weight="600" font-size="13" fill="#d9550c">Orchestrator UI</text>
+      <text x="445" y="243" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity="0.7">video + timeline = the clock</text>
+
+      <!-- fan out -->
+      <line x1="300" y1="230" x2="150" y2="230" stroke="#d9550c" marker-end="url(#arrowAccent)"></line>
+      <text x="225" y="222" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#d9550c">postMessage</text>
+
+      <line x1="590" y1="230" x2="700" y2="230" stroke="#d9550c" marker-end="url(#arrowAccent)"></line>
+      <text x="645" y="222" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#d9550c">WebSocket</text>
+
+      <rect x="10" y="204" width="140" height="52" rx="5" fill="none" stroke="currentColor" opacity="0.85"></rect>
+      <text x="80" y="226" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="currentColor">WebGL sim</text>
+      <text x="80" y="242" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity="0.6">team 2 &middot; iframe</text>
+
+      <rect x="700" y="204" width="0" height="0"></rect>
+      <rect x="600" y="204" width="120" height="52" rx="5" fill="none" stroke="currentColor" opacity="0.85"></rect>
+      <text x="660" y="222" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor">arm relay</text>
+      <text x="660" y="238" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" opacity="0.6">team 3 &middot; local svc</text>
+
+      <line x1="660" y1="256" x2="660" y2="286" stroke="currentColor" marker-end="url(#arrow)"></line>
+      <text x="530" y="280" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor">physical arm</text>
+      <line x1="600" y1="277" x2="560" y2="277" stroke="currentColor" opacity="0"></line>
+    </svg>
+    <figcaption>The orchestrator is the only piece that talks to everything else. Simulation and hardware each get the same per-frame message on the same clock; neither depends on the other being present, so either can be stubbed out while its team is still building.</figcaption>
+  </figure>
+
+  <hr class="section-rule">
+  <p class="kicker">03 &nbsp;Subsystems</p>
+  <h2><span class="num">&mdash;</span>Ownership and contracts</h2>
+  <p>Each row is buildable and testable in isolation once the file format between rows 2 and 4 is agreed. That agreement is the actual unblocking step &mdash; more valuable to lock down this week than any UI code.</p>
+
+  <div class="subsystems">
+    <div class="subsystem">
+      <div class="tag">01</div>
+      <div>
+        <h4>Perception <span class="owner">&middot; MediaPipe group</span></h4>
+        <p>Runs MediaPipe Pose (or Holistic) over the mp4 offline in Python. Output: 33 landmarks per sampled frame, at a fixed rate (recommend resampling to a flat 30 fps regardless of MediaPipe's native rate, so nothing downstream has to handle variable timing).</p>
+      </div>
+    </div>
+    <div class="subsystem">
+      <div class="tag">02</div>
+      <div>
+        <h4>Retargeting &amp; optimization <span class="owner">&middot; the "ML algorithm"</span></h4>
+        <p>Converts human landmarks into the target arm's joint angles: geometric IK from shoulder/elbow/wrist vectors first, a smoothing filter (One-Euro or Savitzky&ndash;Golay) to kill jitter, then joint-limit clamping. "Optimized" &mdash; shorter cycle time, less wasted motion &mdash; is a second pass on top of this once the direct-mapping version is demoed and validated.</p>
+      </div>
+    </div>
+    <div class="subsystem">
+      <div class="tag">03</div>
+      <div>
+        <h4>Orchestrator UI <span class="owner">&middot; this build</span></h4>
+        <p>Browser page. Plays the source video, reads the trajectory file, and on every frame pushes the current joint angles to the simulation (and, optionally, the hardware relay), keyed to <code>video.currentTime</code> &mdash; never to its own timer. See the working prototype delivered alongside this plan.</p>
+      </div>
+    </div>
+    <div class="subsystem">
+      <div class="tag">04</div>
+      <div>
+        <h4>Scenario parameter layer <span class="owner">&middot; current priority &middot; lives inside the orchestrator</span></h4>
+        <p>Sits between the trajectory file and everything downstream. Takes the raw retargeted angles for the current frame and applies, live, in the browser: per-joint angle limits, a max joint-speed cap, a base mounting-offset, and a payload-weight heuristic. Nothing here touches the source video or the retargeting output &mdash; it's a lens on top of them. Formulas in &sect;3.5 below.</p>
+      </div>
+    </div>
+    <div class="subsystem">
+      <div class="tag">05</div>
+      <div>
+        <h4>Simulation <span class="owner">&middot; your exact arm model &middot; already built</span></h4>
+        <p>Embedded as an <code>&lt;iframe&gt;</code>. The only change it needs is ~15 lines: a <code>message</code> listener that reads <code>{type:"pose-frame", angles}</code> (the parameter layer's <em>output</em>, not the raw retargeted trajectory) and drives the existing rig. No rebuild, no shared codebase with the orchestrator.</p>
+      </div>
+    </div>
+    <div class="subsystem">
+      <div class="tag">06</div>
+      <div>
+        <h4>Arm relay <span class="owner">&middot; hardware owner &middot; optional, deprioritized</span></h4>
+        <p>A small local service (Python or Node) on the machine wired to the arm, using its vendor SDK or serial protocol. Exposes a WebSocket the orchestrator connects to; owns rate limiting, its own hard joint-limit clamping, and the e-stop. The browser never talks to the SDK directly. Kept in the interface as a panel, not required for the current milestone.</p>
+      </div>
+    </div>
+  </div>
+
+  <h3>3.5 &nbsp;What "playing with parameters" computes</h3>
+  <p>Deliberately a heuristic, not a physics engine &mdash; fast to build, easy to reason about, and honest about what it is. Applied to the raw angles <code>[base_yaw, shoulder, elbow, wrist_pitch, wrist_roll, gripper]</code> every frame, in this order:</p>
+  <pre>holding   = gripper_angle &gt; 35                 // treat a mostly-closed gripper as "carrying"
+droop     = holding ? weight_kg &times; 6 : 0        // deg, elbow sags under load
+elbow'    = elbow + droop
+wrist'    = wrist_pitch + droop &times; 0.6
+
+base'     = base_yaw + mount_offset_deg          // where the arm is actually bolted down
+
+for each joint:  clamp(angle, joint_min, joint_max)
+
+max_speed = speed_slider_deg_s / (1 + weight_kg &times; 0.35)   // heavier &rarr; lower effective speed cap
+applied   = rate_limit(target, previous_applied, max_speed, dt)  // slew-rate limiter</pre>
+  <p>The slew-rate limiter is what makes speed and weight <em>visible</em>: when the retargeted trajectory moves faster than <code>max_speed</code> allows, the applied angle falls behind and catches up over subsequent frames instead of snapping &mdash; the same behavior a real controller shows when commanded faster than it can execute. Joint limits and speed cap are exactly the kind of thing you'd otherwise only find by testing against physical hardware; this lets you find them in the browser first.</p>
+
+  <h3>The file format that unblocks everyone</h3>
+  <p>This is the one artifact worth agreeing on before any other code is written. Version it from day one.</p>
+  <pre>{
+  "version": "1.0",
+  "source_video": "packaging_line_04.mp4",
+  "sample_rate_hz": 30,
+  "joint_names": ["base_yaw","shoulder_pitch","elbow_pitch",
+                  "wrist_pitch","wrist_roll","gripper"],
+  "frames": [
+    { "t": 0.000, "joint_angles_deg": [ 12.4,-30.1, 55.6, 0.0, 0.0, 20.0] },
+    { "t": 0.033, "joint_angles_deg": [ 12.6,-29.8, 55.1, 0.2, 0.0, 20.0] }
+  ]
+}</pre>
+  <p>Raw landmarks are optional cargo on each frame if you want the orchestrator to also draw the human skeleton overlay &mdash; useful for the demo, not required for driving the arm.</p>
+
+  <h3>The two live contracts</h3>
+  <div class="tablewrap">
+  <table>
+    <tr><th>Channel</th><th>Direction</th><th>Message</th><th>Notes</th></tr>
+    <tr>
+      <td><code>postMessage</code></td>
+      <td>orchestrator &rarr; sim iframe</td>
+      <td><code>{type:"pose-frame", t, angles, jointNames}</code></td>
+      <td>Sim replies <code>{type:"pose-ready"}</code> once loaded so the orchestrator knows it can start sending.</td>
+    </tr>
+    <tr>
+      <td>WebSocket</td>
+      <td>orchestrator &harr; arm relay</td>
+      <td>same frame shape, JSON text</td>
+      <td>Throttle to ~20&ndash;30 Hz regardless of render rate &mdash; the arm controller doesn't need 60fps and shouldn't get it.</td>
+    </tr>
+  </table>
+  </div>
+
+  <hr class="section-rule">
+  <p class="kicker">04 &nbsp;Build order</p>
+  <h2><span class="num">&mdash;</span>Roadmap</h2>
+
+  <div class="roadmap">
+    <div class="phase current">
+      <div class="marker"><span class="n">0</span><span class="status">this week</span></div>
+      <div><h4>Orchestrator + parameter sandbox, sample data</h4><p>Build the interface, including the scenario parameter layer (limits, speed, base offset, weight), against a hand-written sample trajectory. Validates the sync architecture and the <code>postMessage</code> contract before either other team has to deliver anything. This is the prototype delivered with this plan.</p></div>
+    </div>
+    <div class="phase">
+      <div class="marker"><span class="n">1</span><span class="status">next</span></div>
+      <div><h4>Real extraction, real skeleton</h4><p>Swap in the MediaPipe group's actual landmark output from an uploaded dataset video. Confirm the overlay tracks the video with no visible lag or drift.</p></div>
+    </div>
+    <div class="phase">
+      <div class="marker"><span class="n">2</span><span class="status">next</span></div>
+      <div><h4>Retargeting v1</h4><p>Geometric IK + smoothing turns landmarks into joint angles for your actual arm's joint space. This is the raw trajectory the parameter layer then sits on top of.</p></div>
+    </div>
+    <div class="phase">
+      <div class="marker"><span class="n">3</span><span class="status">next</span></div>
+      <div><h4>Swap in the real simulation</h4><p>Point the iframe at your actual WebGL sim's URL. One integration session to align on the <code>postMessage</code> contract &mdash; not a rebuild on either side. The parameter sandbox now drives your real arm model, not the reference rig.</p></div>
+    </div>
+    <div class="phase">
+      <div class="marker"><span class="n">4</span><span class="status">stretch</span></div>
+      <div><h4>Hardware relay, bench test</h4><p>Deprioritized for now, kept as a panel in the interface. Stand up the local relay service and bench-test with conservative soft limits whenever it becomes the priority again.</p></div>
+    </div>
+    <div class="phase">
+      <div class="marker"><span class="n">5</span><span class="status">stretch</span></div>
+      <div><h4>Live mode</h4><p>Swap the pre-recorded file for a streaming webcam feed once replay mode is reliable. Optional &mdash; see risk on demo reliability below.</p></div>
+    </div>
+  </div>
+
+  <hr class="section-rule">
+  <p class="kicker">05 &nbsp;Risks</p>
+  <h2><span class="num">&mdash;</span>What actually breaks this</h2>
+  <div class="tablewrap">
+  <table>
+    <tr><th>Risk</th><th>Mitigation</th></tr>
+    <tr><td class="risk">Human and robot don't share a coordinate frame</td><td>Fix the camera mount and do a one-time calibration transform rather than solving general camera pose.</td></tr>
+    <tr><td class="risk">Human arm has more effective DOF than a 6-axis arm</td><td>Scope retargeting to the joints the packaging task actually needs &mdash; reach, grasp, place &mdash; not a full-body map.</td></tr>
+    <tr><td class="risk">Sim, video, and hardware drift out of sync</td><td>One clock only: everything reads <code>video.currentTime</code>. Nothing downstream runs its own timer.</td></tr>
+    <tr><td class="risk">Raw retargeted angles sent straight to servos</td><td>Relay always clamps to joint limits and owns the e-stop. Browser never talks to the SDK directly.</td></tr>
+    <tr><td class="risk">Live pipeline fails mid-pitch</td><td>Pre-recorded replay is the default for the demo (already decided). Live mode is a phase 5 stretch goal, not the fallback.</td></tr>
+    <tr><td class="risk">Mismatched frame rates across stages</td><td>Resample the trajectory file to a fixed rate in the retargeting step, once, so every consumer gets uniform timing.</td></tr>
+  </table>
+  </div>
+
+  <hr class="section-rule">
+  <p class="kicker">06 &nbsp;Stack</p>
+  <h2><span class="num">&mdash;</span>What to actually build each piece with</h2>
+  <div class="stack-grid">
+    <div class="stack-card"><div class="role">Perception</div><div class="pick">Python + mediapipe</div><div class="why">Export JSONL; already in progress with the group doing extraction.</div></div>
+    <div class="stack-card"><div class="role">Retargeting</div><div class="pick">Python, numpy/scipy</div><div class="why">IK and filtering; a CLI that turns landmarks.jsonl into trajectory.json.</div></div>
+    <div class="stack-card"><div class="role">Orchestrator</div><div class="pick">Vanilla JS/TS, single page</div><div class="why">No backend needed for replay mode beyond serving static files.</div></div>
+    <div class="stack-card"><div class="role">Simulation</div><div class="pick">Existing WebGL app, unchanged</div><div class="why">Add one <code>message</code> listener; nothing else changes.</div></div>
+    <div class="stack-card"><div class="role">Arm relay</div><div class="pick">Python/Node + vendor SDK</div><div class="why">Local service, WebSocket in, SDK/serial calls out.</div></div>
+  </div>
+
+  <hr class="section-rule">
+  <p class="kicker">07 &nbsp;Demo</p>
+  <h2><span class="num">&mdash;</span>Script for the pitch</h2>
+  <ol class="demo-script">
+    <li>Upload a packaging-line clip from the dataset and hit play.</li>
+    <li>Skeleton overlay traces the worker's motion in sync with the footage.</li>
+    <li>The simulated arm mirrors the same motion on the same timeline, running your actual arm model.</li>
+    <li>Live close: drag the payload-weight slider up and watch the arm visibly slow and droop while carrying; tighten a joint limit and watch the motion clip to it in real time.</li>
+    <li>Optional, if hardware is wired up by then: connect the relay panel and show the physical arm following along.</li>
+  </ol>
+
+  <footer>
+    <span>human-to-arm pipeline &middot; v1.0</span>
+    <span>see: retarget console (prototype)</span>
+  </footer>
+</div>

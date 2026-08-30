@@ -1,0 +1,1043 @@
+<title>Retarget Console</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #f4f5f2;
+    --panel: #ffffff;
+    --panel-2: #ececE6;
+    --ink: #1b1f23;
+    --muted: #5b6470;
+    --line: #d7dbde;
+    --accent: #d9550c;
+    --accent-ink: #ffffff;
+    --ok: #1f9d5c;
+    --warn: #a86a00;
+    --crit: #c93756;
+    --focus: #2a6fd9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1214;
+      --panel: #161a1d;
+      --panel-2: #1d2227;
+      --ink: #eef0f1;
+      --muted: #8b949c;
+      --line: #2a3034;
+      --accent: #ff7a33;
+      --accent-ink: #14171a;
+      --ok: #3ddc84;
+      --warn: #f0b429;
+      --crit: #ff5470;
+      --focus: #5b9bff;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1214;
+    --panel: #161a1d;
+    --panel-2: #1d2227;
+    --ink: #eef0f1;
+    --muted: #8b949c;
+    --line: #2a3034;
+    --accent: #ff7a33;
+    --accent-ink: #14171a;
+    --ok: #3ddc84;
+    --warn: #f0b429;
+    --crit: #ff5470;
+    --focus: #5b9bff;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+    font-size: 14.5px;
+  }
+  ::selection { background: var(--accent); color: var(--accent-ink); }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 20px 20px 48px; }
+
+  header.top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding-bottom: 16px;
+    margin-bottom: 18px;
+    border-bottom: 2px solid var(--ink);
+  }
+  header.top .id { display: flex; align-items: baseline; gap: 10px; }
+  header.top h1 {
+    font-family: 'IBM Plex Sans Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    margin: 0;
+  }
+  header.top .sub {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--muted);
+  }
+  .pills { display: flex; gap: 8px; flex-wrap: wrap; }
+  .pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 6px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    color: var(--muted);
+  }
+  .pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); flex: none; }
+  .pill.ok { color: var(--ink); }
+  .pill.ok .dot { background: var(--ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 25%, transparent); }
+  .pill.warn .dot { background: var(--warn); }
+  .pill.crit .dot { background: var(--crit); }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .card .head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--line);
+    background: var(--panel-2);
+  }
+  .card .head .label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .card .head .hint {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    color: var(--muted);
+    opacity: 0.8;
+  }
+
+  .stage {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    background: repeating-linear-gradient(0deg, transparent, transparent 23px, color-mix(in srgb, var(--line) 55%, transparent) 24px),
+                repeating-linear-gradient(90deg, transparent, transparent 23px, color-mix(in srgb, var(--line) 55%, transparent) 24px);
+    background-color: var(--bg);
+  }
+  .stage video, .stage canvas, .stage iframe {
+    position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block;
+  }
+  .stage video { object-fit: contain; background: #000; }
+  .stage .placeholder-msg {
+    position: absolute; left: 12px; bottom: 12px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; color: var(--muted);
+    background: color-mix(in srgb, var(--panel) 80%, transparent);
+    padding: 4px 8px; border-radius: 4px; border: 1px solid var(--line);
+    max-width: 80%;
+  }
+
+  .transport {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px;
+    border-top: 1px solid var(--line);
+  }
+  button.iconbtn {
+    width: 30px; height: 30px; border-radius: 6px;
+    border: 1px solid var(--line); background: var(--panel-2); color: var(--ink);
+    display: flex; align-items: center; justify-content: center; cursor: pointer; flex: none;
+    font-size: 13px;
+  }
+  button.iconbtn:hover { border-color: var(--accent); color: var(--accent); }
+  input[type="range"] { flex: 1; accent-color: var(--accent); }
+  .time {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .fileroute {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 10px 14px;
+    border-top: 1px solid var(--line);
+    font-size: 12.5px;
+  }
+  .btn {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 12px; font-weight: 500;
+    padding: 6px 12px; border-radius: 6px;
+    border: 1px solid var(--line); background: var(--panel-2); color: var(--ink);
+    cursor: pointer;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .btn.primary:hover { opacity: 0.9; color: var(--accent-ink); }
+  input[type="file"] { display: none; }
+  .filenote { color: var(--muted); font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
+
+  .readout-row {
+    margin-top: 8px;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
+  }
+  @media (max-width: 860px) { .readout-row { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 480px) { .readout-row { grid-template-columns: repeat(2, 1fr); } }
+  .joint {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--line);
+    border-radius: 6px;
+    padding: 10px 12px;
+  }
+  .joint.limited { border-left-color: var(--warn); }
+
+  .readout-head {
+    margin-top: 18px;
+    display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--muted);
+  }
+  .joint .name {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--muted);
+    margin-bottom: 4px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .joint .val {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 17px; font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+  .joint .val .deg { color: var(--muted); font-size: 12px; }
+
+  .params-card { margin-top: 16px; }
+  .params-card .body {
+    padding: 16px;
+    display: grid;
+    grid-template-columns: 1.15fr 1fr;
+    gap: 22px;
+  }
+  @media (max-width: 780px) { .params-card .body { grid-template-columns: 1fr; } }
+
+  .limits-table { width: 100%; border-collapse: collapse; }
+  .limits-table th, .limits-table td { padding: 5px 6px; }
+  .limits-table th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--muted); text-align: left; font-weight: 500;
+    border-bottom: 1px solid var(--line);
+  }
+  .limits-table td.jname {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px; color: var(--ink);
+    white-space: nowrap;
+  }
+  .limits-table td.limited .jname { color: var(--warn); }
+  .limits-table input[type="number"] {
+    width: 62px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    padding: 4px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--line);
+    background: var(--panel-2);
+    color: var(--ink);
+  }
+
+  .scenario-controls { display: flex; flex-direction: column; gap: 16px; }
+  .scenario-field .flabel {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .scenario-field .flabel .fval { color: var(--accent); font-size: 12.5px; text-transform: none; letter-spacing: 0; }
+  .scenario-field input[type="range"] { width: 100%; accent-color: var(--accent); }
+  .scenario-field .fnote { font-size: 11.5px; color: var(--muted); margin-top: 5px; line-height: 1.5; }
+  .legend-clamped { display: inline-flex; align-items: center; gap: 5px; font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--muted); }
+  .legend-clamped .sw { width: 8px; height: 8px; border-radius: 2px; background: var(--warn); }
+
+  .lower {
+    margin-top: 16px;
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 860px) { .lower { grid-template-columns: 1fr; } }
+
+  .relay .body { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .relay input[type="text"] {
+    width: 100%;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+    background: var(--panel-2);
+    color: var(--ink);
+  }
+  .relay-status {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--muted);
+    line-height: 1.55;
+  }
+  .relay-status strong { color: var(--ink); }
+  .relay-status .note { display: block; margin-top: 6px; opacity: 0.8; }
+
+  .log .body { padding: 0; }
+  .log pre {
+    margin: 0;
+    max-height: 220px;
+    overflow: auto;
+    padding: 12px 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    line-height: 1.6;
+    color: var(--muted);
+  }
+  .log pre .fresh { color: var(--ink); }
+
+  footer.foot {
+    margin-top: 22px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="top">
+    <div class="id">
+      <h1>Retarget Console</h1>
+      <span class="sub">orchestrator &middot; video &rarr; sim &rarr; arm</span>
+    </div>
+    <div class="pills">
+      <span class="pill ok" id="pillPerception"><span class="dot"></span>perception: sample data</span>
+      <span class="pill" id="pillSim"><span class="dot"></span>simulation: connecting</span>
+      <span class="pill" id="pillRelay"><span class="dot"></span>arm relay: idle</span>
+    </div>
+  </header>
+
+  <div class="grid">
+    <div class="card">
+      <div class="head">
+        <span class="label">01 &middot; source</span>
+        <span class="hint">upload your mp4</span>
+      </div>
+      <div class="stage" id="videoStage">
+        <video id="video" playsinline muted></video>
+        <canvas id="overlay"></canvas>
+        <div class="placeholder-msg" id="placeholderMsg">no video loaded &mdash; showing sample motion on the trajectory clock. Upload an mp4 to overlay the skeleton on real footage.</div>
+      </div>
+      <div class="transport">
+        <button class="iconbtn" id="playBtn" aria-label="Play / pause">&#9658;</button>
+        <input type="range" id="scrub" min="0" max="1000" value="0" aria-label="Timeline">
+        <span class="time" id="timeReadout">0.00s / 5.20s</span>
+      </div>
+      <div class="fileroute">
+        <label class="btn primary" for="videoFile">Load video (.mp4)</label>
+        <input type="file" id="videoFile" accept="video/mp4,video/*">
+        <label class="btn" for="trajFile">Load trajectory (.json)</label>
+        <input type="file" id="trajFile" accept="application/json">
+        <button class="btn" id="resetSample">Use sample data</button>
+        <span class="filenote" id="trajNote">sample: 5.2s pick&ndash;place&ndash;package loop</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="head">
+        <span class="label">02 &middot; simulation</span>
+        <span class="hint">reference rig &mdash; swap for teammate's WebGL sim</span>
+      </div>
+      <div class="stage">
+        <iframe id="rigFrame" title="Reference arm rig"></iframe>
+      </div>
+      <div class="transport" style="justify-content: space-between;">
+        <span class="filenote">contract: <code>postMessage({type:"pose-frame", t, angles, jointNames})</code></span>
+        <span class="time" id="simPing">no frames sent yet</span>
+      </div>
+      <div class="fileroute">
+        <input type="text" id="simUrl" placeholder="https://your-sim-host/path/to/sim" style="flex:1; min-width:160px; font-family:'IBM Plex Mono',monospace; font-size:12px; padding:6px 10px; border-radius:6px; border:1px solid var(--line); background:var(--panel-2); color:var(--ink);">
+        <button class="btn primary" id="loadSimBtn">Load sim</button>
+        <button class="btn" id="useRefRigBtn">Use reference rig</button>
+      </div>
+      <details style="border-top:1px solid var(--line); padding: 10px 14px; font-size:12.5px;">
+        <summary style="cursor:pointer; color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.04em;">what your sim needs to add</summary>
+        <pre style="margin:10px 0 0; font-size:11px; white-space:pre-wrap;">window.addEventListener('message', (ev) => {
+  if (ev.data &amp;&amp; ev.data.type === 'pose-frame') {
+    // ev.data.angles is [base_yaw, shoulder_pitch, elbow_pitch,
+    //                     wrist_pitch, wrist_roll, gripper] in degrees
+    driveYourRig(ev.data.angles);
+  }
+});
+parent.postMessage({type: 'pose-ready'}, '*'); // tells the console you're listening</pre>
+      </details>
+    </div>
+  </div>
+
+  <div class="readout-head">
+    <span>applied joint angles &mdash; after scenario parameters, this is what's sent to the sim + relay</span>
+    <span class="legend-clamped"><span class="sw"></span> limit or speed cap active</span>
+  </div>
+  <div class="readout-row" id="jointReadout"></div>
+
+  <div class="card params-card">
+    <div class="head">
+      <span class="label">03 &middot; scenario parameters</span>
+      <span class="hint">tune the simulation, not the source video</span>
+    </div>
+    <div class="body">
+      <div>
+        <table class="limits-table" aria-label="Joint angle limits">
+          <thead><tr><th>joint</th><th>min &deg;</th><th>max &deg;</th></tr></thead>
+          <tbody id="limitsBody"></tbody>
+        </table>
+      </div>
+      <div class="scenario-controls">
+        <div class="scenario-field">
+          <div class="flabel"><span>max joint speed</span><span class="fval" id="speedVal">220&deg;/s</span></div>
+          <input type="range" id="speedSlider" min="30" max="400" value="220" step="5">
+          <div class="fnote">Caps how fast any joint can change per second. Lower it to see the arm visibly fall behind a fast retargeted move.</div>
+        </div>
+        <div class="scenario-field">
+          <div class="flabel"><span>base mounting offset</span><span class="fval" id="baseVal">0&deg;</span></div>
+          <input type="range" id="baseSlider" min="-45" max="45" value="0" step="1">
+          <div class="fnote">Where the arm is bolted relative to the line &mdash; shifts every frame's base yaw by this much.</div>
+        </div>
+        <div class="scenario-field">
+          <div class="flabel"><span>payload weight</span><span class="fval" id="weightVal">0.0 kg</span></div>
+          <input type="range" id="weightSlider" min="0" max="3" value="0" step="0.1">
+          <div class="fnote">Heuristic, not a physics engine: heavier loads lower the effective speed cap and add visible droop at the elbow/wrist while the gripper is closed.</div>
+        </div>
+        <button class="btn" id="resetParams" style="align-self:flex-start;">Reset to defaults</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="lower">
+    <div class="card relay">
+      <div class="head">
+        <span class="label">04 &middot; arm relay <span style="opacity:.6; text-transform:none; font-family:'IBM Plex Sans',sans-serif;">(optional)</span></span>
+        <span class="hint">WebSocket &middot; deprioritized for this pass</span>
+      </div>
+      <div class="body">
+        <input type="text" id="wsUrl" value="ws://localhost:8765" spellcheck="false">
+        <div style="display:flex; gap:8px;">
+          <button class="btn primary" id="wsConnect" style="flex:1;">Connect</button>
+          <button class="btn" id="wsDisconnect" style="flex:1;">Disconnect</button>
+        </div>
+        <div class="relay-status" id="wsStatus">
+          <strong>Not connected.</strong> Frames are computed and shown here, but nothing is sent to hardware.
+          <span class="note">Note: a page served over https can't open a plain ws:// socket (mixed content). Run your relay with wss://, or serve this console over http while developing against a local relay.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card log">
+      <div class="head">
+        <span class="label">frame log</span>
+        <span class="hint">last messages sent to sim + relay</span>
+      </div>
+      <div class="body">
+        <pre id="logBox">waiting for first frame&hellip;</pre>
+      </div>
+    </div>
+  </div>
+
+  <footer class="foot">
+    <span>retarget console &middot; prototype v0</span>
+    <span>joint order: base_yaw, shoulder_pitch, elbow_pitch, wrist_pitch, wrist_roll, gripper</span>
+  </footer>
+</div>
+
+<template id="rigTemplate">
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  html,body { margin:0; height:100%; background:#0f1214; overflow:hidden; }
+  canvas { display:block; width:100%; height:100%; }
+  .tag {
+    position:absolute; top:8px; left:10px;
+    font: 10px 'IBM Plex Mono', ui-monospace, monospace;
+    color:#8b949c; letter-spacing:.04em; text-transform:uppercase;
+  }
+  .tag b { color:#ff7a33; }
+</style>
+</head>
+<body>
+<div class="tag"><b>reference rig</b> &mdash; replace this iframe's src with your WebGL sim</div>
+<canvas id="c"></canvas>
+<script>
+  var canvas = document.getElementById('c');
+  var ctx = canvas.getContext('2d');
+  var latest = { angles: [0,-100,40,-10,0,10], jointNames: ["base_yaw","shoulder_pitch","elbow_pitch","wrist_pitch","wrist_roll","gripper"], t: 0 };
+  var haveFrame = false;
+
+  function resize() {
+    var dpr = window.devicePixelRatio || 1;
+    canvas.width = canvas.clientWidth * dpr;
+    canvas.height = canvas.clientHeight * dpr;
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  window.addEventListener('message', function(ev){
+    var d = ev.data;
+    if (d && d.type === 'pose-frame') {
+      latest = d;
+      haveFrame = true;
+    }
+  });
+
+  function deg2rad(d){ return d * Math.PI / 180; }
+
+  function draw(){
+    var w = canvas.clientWidth, h = canvas.clientHeight;
+    ctx.clearRect(0,0,w,h);
+
+    // floor grid
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.lineWidth = 1;
+    var floorY = h * 0.82;
+    ctx.beginPath();
+    ctx.moveTo(0, floorY); ctx.lineTo(w, floorY);
+    ctx.stroke();
+    for (var gx = 0; gx < w; gx += 24) {
+      ctx.beginPath(); ctx.moveTo(gx, floorY); ctx.lineTo(gx, h); ctx.stroke();
+    }
+
+    var a = latest.angles || [0,-100,40,-10,0,10];
+    var baseYaw = a[0]||0, shoulder = a[1]||0, elbow = a[2]||0, wrist = a[3]||0, gripper = a[5]!==undefined?a[5]:10;
+
+    var originX = w*0.5 + baseYaw*1.1;
+    var originY = floorY - h*0.06;
+    var L1 = h*0.24, L2 = h*0.20, L3 = h*0.09;
+
+    var a1 = deg2rad(shoulder);
+    var elbowPt = [originX + L1*Math.cos(a1), originY + L1*Math.sin(a1)];
+    var a2 = a1 + deg2rad(elbow);
+    var wristPt = [elbowPt[0] + L2*Math.cos(a2), elbowPt[1] + L2*Math.sin(a2)];
+    var a3 = a2 + deg2rad(wrist);
+    var handPt = [wristPt[0] + L3*Math.cos(a3), wristPt[1] + L3*Math.sin(a3)];
+
+    // base mount
+    ctx.fillStyle = '#2a3034';
+    ctx.fillRect(originX-18, originY-6, 36, 14);
+
+    ctx.strokeStyle = haveFrame ? '#ff7a33' : '#4a5157';
+    ctx.lineCap = 'round';
+    ctx.lineWidth = 10;
+    ctx.beginPath(); ctx.moveTo(originX, originY); ctx.lineTo(elbowPt[0], elbowPt[1]); ctx.stroke();
+    ctx.lineWidth = 8;
+    ctx.beginPath(); ctx.moveTo(elbowPt[0], elbowPt[1]); ctx.lineTo(wristPt[0], wristPt[1]); ctx.stroke();
+    ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.moveTo(wristPt[0], wristPt[1]); ctx.lineTo(handPt[0], handPt[1]); ctx.stroke();
+
+    [ [originX,originY], elbowPt, wristPt ].forEach(function(p){
+      ctx.fillStyle = '#eef0f1';
+      ctx.beginPath(); ctx.arc(p[0], p[1], 5, 0, Math.PI*2); ctx.fill();
+    });
+
+    // gripper jaws
+    var gOpen = (gripper/90) * 10;
+    var ang = a3;
+    var perp = [-Math.sin(ang), Math.cos(ang)];
+    ctx.strokeStyle = '#eef0f1';
+    ctx.lineWidth = 3;
+    [1,-1].forEach(function(s){
+      var jx = handPt[0] + perp[0]*gOpen*s;
+      var jy = handPt[1] + perp[1]*gOpen*s;
+      var ex = jx + Math.cos(ang)*10;
+      var ey = jy + Math.sin(ang)*10;
+      ctx.beginPath(); ctx.moveTo(jx,jy); ctx.lineTo(ex,ey); ctx.stroke();
+    });
+
+    requestAnimationFrame(draw);
+  }
+  draw();
+
+  if (window.parent) window.parent.postMessage({type:'pose-ready'}, '*');
+</script>
+</body>
+</html>
+</template>
+
+<script>
+(function(){
+  "use strict";
+
+  var JOINT_NAMES = ["base_yaw","shoulder_pitch","elbow_pitch","wrist_pitch","wrist_roll","gripper"];
+  var JOINT_LABELS = ["base yaw","shoulder pitch","elbow pitch","wrist pitch","wrist roll","gripper"];
+  var DEFAULT_LIMITS = [
+    { min: -45,  max:  45 },
+    { min: -170, max: -40 },
+    { min:  10,  max: 110 },
+    { min: -30,  max:  40 },
+    { min: -30,  max:  30 },
+    { min:   0,  max:  90 }
+  ];
+
+  // ---------- scenario parameters: joint limits, speed cap, base offset, payload weight ----------
+  var limits = DEFAULT_LIMITS.map(function(l){ return { min: l.min, max: l.max }; });
+  var limitsBody = document.getElementById('limitsBody');
+  JOINT_LABELS.forEach(function(label, i){
+    var tr = document.createElement('tr');
+    tr.id = 'limrow' + i;
+    tr.innerHTML = '<td class="jname">' + label + '</td>' +
+      '<td><input type="number" id="lmin' + i + '" value="' + limits[i].min + '"></td>' +
+      '<td><input type="number" id="lmax' + i + '" value="' + limits[i].max + '"></td>';
+    limitsBody.appendChild(tr);
+    document.getElementById('lmin' + i).addEventListener('input', function(e){ limits[i].min = parseFloat(e.target.value) || 0; });
+    document.getElementById('lmax' + i).addEventListener('input', function(e){ limits[i].max = parseFloat(e.target.value) || 0; });
+  });
+
+  var speedSlider = document.getElementById('speedSlider');
+  var baseSlider = document.getElementById('baseSlider');
+  var weightSlider = document.getElementById('weightSlider');
+  var speedVal = document.getElementById('speedVal');
+  var baseVal = document.getElementById('baseVal');
+  var weightVal = document.getElementById('weightVal');
+
+  speedSlider.addEventListener('input', function(){ speedVal.textContent = speedSlider.value + '°/s'; });
+  baseSlider.addEventListener('input', function(){ baseVal.textContent = (baseSlider.value>0?'+':'') + baseSlider.value + '°'; });
+  weightSlider.addEventListener('input', function(){ weightVal.textContent = parseFloat(weightSlider.value).toFixed(1) + ' kg'; });
+
+  var skipSlewOnce = true;
+  document.getElementById('resetParams').addEventListener('click', function(){
+    limits = DEFAULT_LIMITS.map(function(l){ return { min: l.min, max: l.max }; });
+    JOINT_LABELS.forEach(function(_,i){
+      document.getElementById('lmin'+i).value = limits[i].min;
+      document.getElementById('lmax'+i).value = limits[i].max;
+    });
+    speedSlider.value = 220; speedVal.textContent = '220°/s';
+    baseSlider.value = 0; baseVal.textContent = '0°';
+    weightSlider.value = 0; weightVal.textContent = '0.0 kg';
+    skipSlewOnce = true;
+  });
+
+  // ---------- sample trajectory: pick > grasp > lift > carry > place > release > retract ----------
+  var SAMPLE_KEYS = [
+    { t: 0.0, a: [  0, -100,  40, -10,  0, 10 ] },
+    { t: 0.9, a: [  8, -150,  70,  10,  5, 10 ] },
+    { t: 1.4, a: [  8, -150,  70,  10,  5, 55 ] },
+    { t: 2.1, a: [  4, -110,  45,  -5,  0, 55 ] },
+    { t: 2.9, a: [-10, -120,  55,   0, -5, 55 ] },
+    { t: 3.6, a: [-10, -155,  75,  15, -5, 55 ] },
+    { t: 4.1, a: [-10, -155,  75,  15, -5, 10 ] },
+    { t: 4.6, a: [ -4, -120,  50,  -5,  0, 10 ] },
+    { t: 5.2, a: [  0, -100,  40, -10,  0, 10 ] }
+  ];
+  var SAMPLE_DURATION = 5.2;
+
+  function smoothstep(x){ return x*x*(3-2*x); }
+
+  function sampleAt(t){
+    t = ((t % SAMPLE_DURATION) + SAMPLE_DURATION) % SAMPLE_DURATION;
+    for (var i=0; i<SAMPLE_KEYS.length-1; i++){
+      var k0 = SAMPLE_KEYS[i], k1 = SAMPLE_KEYS[i+1];
+      if (t >= k0.t && t <= k1.t){
+        var f = smoothstep((t-k0.t)/(k1.t-k0.t));
+        var out = [];
+        for (var j=0;j<6;j++) out.push(k0.a[j] + (k1.a[j]-k0.a[j])*f);
+        return out;
+      }
+    }
+    return SAMPLE_KEYS[SAMPLE_KEYS.length-1].a.slice();
+  }
+
+  // ---------- trajectory source: sample or uploaded json ----------
+  var traj = { kind: 'sample', duration: SAMPLE_DURATION, angleAt: sampleAt, landmarksAt: null };
+
+  function angleAtCustom(frames){
+    return function(t){
+      var dur = frames[frames.length-1].t;
+      t = ((t % dur) + dur) % dur;
+      for (var i=0;i<frames.length-1;i++){
+        var f0=frames[i], f1=frames[i+1];
+        if (t>=f0.t && t<=f1.t){
+          var f = f1.t>f0.t ? (t-f0.t)/(f1.t-f0.t) : 0;
+          var out=[];
+          for (var j=0;j<6;j++){
+            var v0=f0.joint_angles_deg[j]||0, v1=f1.joint_angles_deg[j]||0;
+            out.push(v0+(v1-v0)*f);
+          }
+          return out;
+        }
+      }
+      return frames[frames.length-1].joint_angles_deg;
+    };
+  }
+
+  document.getElementById('trajFile').addEventListener('change', function(e){
+    var file = e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(){
+      try {
+        var data = JSON.parse(reader.result);
+        if (!data.frames || !data.frames.length) throw new Error('no frames[] in file');
+        var frames = data.frames.slice().sort(function(a,b){return a.t-b.t;});
+        traj = { kind:'custom', duration: frames[frames.length-1].t, angleAt: angleAtCustom(frames), landmarksAt: null };
+        document.getElementById('trajNote').textContent = 'custom: ' + frames.length + ' frames, ' + frames[frames.length-1].t.toFixed(1) + 's';
+        document.getElementById('pillPerception').innerHTML = '<span class="dot"></span>perception: custom (' + frames.length + ' frames)';
+        document.getElementById('scrub').max = 1000;
+        skipSlewOnce = true;
+      } catch(err){
+        document.getElementById('trajNote').textContent = 'could not parse file: ' + err.message;
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  document.getElementById('resetSample').addEventListener('click', function(){
+    traj = { kind: 'sample', duration: SAMPLE_DURATION, angleAt: sampleAt, landmarksAt: null };
+    document.getElementById('trajNote').textContent = 'sample: 5.2s pick–place–package loop';
+    document.getElementById('pillPerception').innerHTML = '<span class="dot"></span>perception: sample data';
+    skipSlewOnce = true;
+  });
+
+  // ---------- video + clock ----------
+  var video = document.getElementById('video');
+  var overlay = document.getElementById('overlay');
+  var octx = overlay.getContext('2d');
+  var playBtn = document.getElementById('playBtn');
+  var scrub = document.getElementById('scrub');
+  var timeReadout = document.getElementById('timeReadout');
+  var placeholderMsg = document.getElementById('placeholderMsg');
+  var stage = document.getElementById('videoStage');
+
+  var hasVideo = false;
+  var internalPlaying = false;
+  var internalT = 0;
+  var lastTick = null;
+
+  document.getElementById('videoFile').addEventListener('change', function(e){
+    var file = e.target.files[0];
+    if (!file) return;
+    video.src = URL.createObjectURL(file);
+    hasVideo = true;
+    placeholderMsg.style.display = 'none';
+    video.play().catch(function(){});
+  });
+
+  playBtn.addEventListener('click', function(){
+    if (hasVideo){
+      if (video.paused) video.play(); else video.pause();
+    } else {
+      internalPlaying = !internalPlaying;
+      lastTick = null;
+      playBtn.innerHTML = internalPlaying ? '&#10074;&#10074;' : '&#9658;';
+    }
+  });
+  video.addEventListener('play', function(){ playBtn.innerHTML = '&#10074;&#10074;'; });
+  video.addEventListener('pause', function(){ playBtn.innerHTML = '&#9658;'; });
+
+  scrub.addEventListener('input', function(){
+    var frac = scrub.value/1000;
+    if (hasVideo && video.duration) {
+      video.currentTime = frac * video.duration;
+    } else {
+      internalT = frac * traj.duration;
+    }
+    skipSlewOnce = true;
+  });
+  video.addEventListener('seeked', function(){ skipSlewOnce = true; });
+
+  function fmt(s){ return (isFinite(s)?s:0).toFixed(2)+'s'; }
+
+  function currentTime(){
+    if (hasVideo && video.duration) return video.currentTime;
+    return internalT;
+  }
+  function duration(){
+    if (hasVideo && video.duration) return video.duration;
+    return traj.duration;
+  }
+
+  function sizeOverlay(){
+    var r = stage.getBoundingClientRect();
+    overlay.width = r.width; overlay.height = r.height;
+  }
+  window.addEventListener('resize', sizeOverlay);
+  sizeOverlay();
+
+  // ---------- skeleton drawing (forward kinematics from angles, matches sim rig) ----------
+  function deg2rad(d){ return d*Math.PI/180; }
+
+  function drawSkeleton(angles){
+    var w = overlay.width, h = overlay.height;
+    octx.clearRect(0,0,w,h);
+    if (!w || !h) return;
+
+    var baseYaw=angles[0]||0, shoulder=angles[1]||0, elbow=angles[2]||0, wrist=angles[3]||0;
+    var originX = w*0.32 + baseYaw*0.8;
+    var originY = h*0.62;
+    var L1 = h*0.26, L2 = h*0.22, L3 = h*0.09;
+
+    var a1 = deg2rad(shoulder);
+    var elbowPt = [originX + L1*Math.cos(a1), originY + L1*Math.sin(a1)];
+    var a2 = a1 + deg2rad(elbow);
+    var wristPt = [elbowPt[0] + L2*Math.cos(a2), elbowPt[1] + L2*Math.sin(a2)];
+    var a3 = a2 + deg2rad(wrist);
+    var handPt = [wristPt[0] + L3*Math.cos(a3), wristPt[1] + L3*Math.sin(a3)];
+
+    var accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#ff7a33';
+    octx.strokeStyle = accent;
+    octx.lineWidth = 4;
+    octx.lineCap = 'round';
+    [[[originX,originY],elbowPt],[elbowPt,wristPt],[wristPt,handPt]].forEach(function(seg){
+      octx.beginPath(); octx.moveTo(seg[0][0],seg[0][1]); octx.lineTo(seg[1][0],seg[1][1]); octx.stroke();
+    });
+    octx.fillStyle = '#ffffff';
+    [[originX,originY],elbowPt,wristPt,handPt].forEach(function(p){
+      octx.beginPath(); octx.arc(p[0],p[1],4.5,0,Math.PI*2); octx.fill();
+      octx.strokeStyle = 'rgba(0,0,0,0.35)'; octx.lineWidth = 1; octx.stroke();
+    });
+  }
+
+  // ---------- readouts ----------
+  var readoutRow = document.getElementById('jointReadout');
+  JOINT_LABELS.forEach(function(label, i){
+    var d = document.createElement('div');
+    d.className = 'joint';
+    d.id = 'jointCard' + i;
+    d.innerHTML = '<div class="name">'+label+'</div><div class="val" id="jv'+i+'">0<span class="deg">&deg;</span></div>';
+    readoutRow.appendChild(d);
+  });
+  var jointEls = JOINT_LABELS.map(function(_,i){ return document.getElementById('jv'+i); });
+  var jointCards = JOINT_LABELS.map(function(_,i){ return document.getElementById('jointCard'+i); });
+
+  // ---------- sim iframe: reference rig, or your own sim by URL ----------
+  var rigFrame = document.getElementById('rigFrame');
+  var simReady = false;
+  var pillSim = document.getElementById('pillSim');
+  var simPing = document.getElementById('simPing');
+  var simUrlInput = document.getElementById('simUrl');
+  var simReadyCheckId = null;
+
+  function armSimReadyCheck(){
+    simReady = false;
+    pillSim.className = 'pill warn';
+    pillSim.innerHTML = '<span class="dot"></span>simulation: connecting';
+    if (simReadyCheckId) clearTimeout(simReadyCheckId);
+    simReadyCheckId = setTimeout(function(){
+      if (!simReady){
+        pillSim.className = 'pill warn';
+        pillSim.innerHTML = '<span class="dot"></span>simulation: no ack yet';
+      }
+    }, 4000);
+  }
+
+  function loadReferenceRig(){
+    rigFrame.removeAttribute('src');
+    rigFrame.srcdoc = document.getElementById('rigTemplate').innerHTML;
+    simUrlInput.value = '';
+    armSimReadyCheck();
+  }
+
+  function loadCustomSim(url){
+    rigFrame.removeAttribute('srcdoc');
+    rigFrame.src = url;
+    armSimReadyCheck();
+  }
+
+  document.getElementById('loadSimBtn').addEventListener('click', function(){
+    var url = simUrlInput.value.trim();
+    if (url) loadCustomSim(url);
+  });
+  document.getElementById('useRefRigBtn').addEventListener('click', loadReferenceRig);
+
+  window.addEventListener('message', function(ev){
+    if (ev.data && ev.data.type === 'pose-ready'){
+      simReady = true;
+      pillSim.className = 'pill ok';
+      pillSim.innerHTML = '<span class="dot"></span>simulation: ready';
+    }
+  });
+
+  loadReferenceRig();
+
+  // ---------- websocket relay ----------
+  var ws = null;
+  var wsUrlInput = document.getElementById('wsUrl');
+  var wsStatus = document.getElementById('wsStatus');
+  var pillRelay = document.getElementById('pillRelay');
+  var latestFrameMsg = null;
+
+  function setRelayStatus(state, text){
+    pillRelay.className = 'pill' + (state==='ok'?' ok':state==='warn'?' warn':state==='crit'?' crit':'');
+    var label = state==='ok' ? 'connected' : state==='warn' ? 'connecting' : state==='crit' ? 'error' : 'idle';
+    pillRelay.innerHTML = '<span class="dot"></span>arm relay: '+label;
+    wsStatus.innerHTML = text;
+  }
+
+  document.getElementById('wsConnect').addEventListener('click', function(){
+    var url = wsUrlInput.value.trim();
+    if (!url) return;
+    try {
+      ws = new WebSocket(url);
+      setRelayStatus('warn', '<strong>Connecting to '+url+'&hellip;</strong>');
+      ws.onopen = function(){ setRelayStatus('ok', '<strong>Connected.</strong> Streaming joint frames at ~25&nbsp;Hz.'); };
+      ws.onclose = function(){ setRelayStatus('idle', '<strong>Disconnected.</strong> Frames are computed but not sent.<span class="note">If this closed immediately, the relay likely isn\'t running yet, or the page (https) tried a plain ws:// socket &mdash; mixed content is blocked by the browser. Use wss:// or serve this page over http during development.</span>'); };
+      ws.onerror = function(){ setRelayStatus('crit', '<strong>Connection error.</strong><span class="note">Check the relay is running at that address, and that ws:// vs wss:// matches how this page is served.</span>'); };
+    } catch(err){
+      setRelayStatus('crit', '<strong>Could not open socket:</strong> '+err.message);
+    }
+  });
+  document.getElementById('wsDisconnect').addEventListener('click', function(){
+    if (ws) { ws.close(); ws = null; }
+    setRelayStatus('idle', '<strong>Not connected.</strong> Frames are computed and shown here, but nothing is sent to hardware.');
+  });
+
+  setInterval(function(){
+    if (ws && ws.readyState === WebSocket.OPEN && latestFrameMsg){
+      ws.send(JSON.stringify(latestFrameMsg));
+    }
+  }, 40);
+
+  // ---------- message log ----------
+  var logBox = document.getElementById('logBox');
+  var lastLog = 0;
+
+  function pushLog(msg){
+    var now = performance.now();
+    if (now - lastLog < 220) return;
+    lastLog = now;
+    var line = '<span class="fresh">t=' + msg.t.toFixed(2) + 's</span>  [' +
+      msg.angles.map(function(v){return v.toFixed(1);}).join(', ') + ']';
+    var lines = logBox.innerHTML === 'waiting for first frame&hellip;' ? [] : logBox.innerHTML.split('\n');
+    lines.unshift(line);
+    if (lines.length > 12) lines.length = 12;
+    logBox.innerHTML = lines.join('\n');
+  }
+
+  // ---------- scenario transform: raw retargeted angles -> applied angles ----------
+  var appliedPrev = null;   // last angles actually sent, for the slew-rate limiter
+  var lastTransformTime = null;
+
+  function clamp(v, lo, hi){ return v < lo ? lo : (v > hi ? hi : v); }
+
+  function applyScenario(raw, dt){
+    var baseOffset = parseFloat(baseSlider.value) || 0;
+    var weight = parseFloat(weightSlider.value) || 0;
+    var maxSpeed = (parseFloat(speedSlider.value) || 220) / (1 + weight * 0.35);
+
+    var holding = raw[5] > 35; // gripper mostly closed -> treat as carrying the object
+    var droop = holding ? weight * 6 : 0;
+
+    var target = raw.slice();
+    target[0] = target[0] + baseOffset;
+    target[2] = target[2] + droop;        // elbow sags
+    target[3] = target[3] + droop * 0.6;  // wrist follows partway
+
+    var clampedFlags = [false,false,false,false,false,false];
+    for (var i=0;i<6;i++){
+      var c = clamp(target[i], limits[i].min, limits[i].max);
+      if (Math.abs(c - target[i]) > 0.05) clampedFlags[i] = true;
+      target[i] = c;
+    }
+
+    if (!appliedPrev || skipSlewOnce){
+      appliedPrev = target.slice();
+      skipSlewOnce = false;
+    } else {
+      var maxDelta = maxSpeed * dt;
+      for (var j=0;j<6;j++){
+        var delta = target[j] - appliedPrev[j];
+        if (Math.abs(delta) > maxDelta){
+          appliedPrev[j] += Math.sign(delta) * maxDelta;
+          clampedFlags[j] = true; // speed cap engaged
+        } else {
+          appliedPrev[j] = target[j];
+        }
+      }
+    }
+    return { angles: appliedPrev.slice(), clamped: clampedFlags };
+  }
+
+  // ---------- main clock loop ----------
+  function tick(now){
+    if (hasVideo){
+      if (!video.paused && video.duration){
+        // driven by native video playback
+      }
+    } else if (internalPlaying) {
+      if (lastTick !== null) internalT += (now - lastTick)/1000;
+      lastTick = now;
+      if (internalT > traj.duration) internalT -= traj.duration;
+    } else {
+      lastTick = null;
+    }
+
+    var t = currentTime();
+    var dur = duration();
+    scrub.value = dur ? Math.round((t/dur)*1000) : 0;
+    timeReadout.textContent = fmt(t) + ' / ' + fmt(dur);
+
+    var trajT = hasVideo ? (t % traj.duration) : t;
+    var rawAngles = traj.angleAt(trajT);
+
+    var dt = lastTransformTime === null ? 1/60 : Math.max(0, Math.min(0.25, (now - lastTransformTime)/1000));
+    lastTransformTime = now;
+    var scenario = applyScenario(rawAngles, dt);
+    var angles = scenario.angles;
+
+    drawSkeleton(angles);
+
+    jointEls.forEach(function(el,i){
+      el.innerHTML = angles[i].toFixed(1) + '<span class="deg">&deg;</span>';
+      jointCards[i].classList.toggle('limited', scenario.clamped[i]);
+    });
+
+    var msg = { type: 'pose-frame', t: t, angles: angles, jointNames: JOINT_NAMES };
+    latestFrameMsg = msg;
+    if (rigFrame.contentWindow) rigFrame.contentWindow.postMessage(msg, '*');
+    simPing.textContent = 'last frame: t=' + t.toFixed(2) + 's';
+    pushLog(msg);
+
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+})();
+</script>
