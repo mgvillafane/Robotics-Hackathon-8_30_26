@@ -1,0 +1,16 @@
+.venv/
+.mplconfig/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+models/*.task
+models/*.tflite
+outputs/*
+!outputs/**/.gitkeep
+work/
+*.mp4
+!tests/fixtures/**
+.DS_Store

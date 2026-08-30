@@ -1,0 +1,38 @@
+[project]
+name = "gripper-state"
+version = "0.1.0"
+description = "Extract a continuous human gripper/hand-open signal from egocentric task video."
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "mediapipe>=0.10.21,<1.1",
+    "opencv-python>=4.10.0,<4.13",
+    "numpy>=1.26,<2.3",
+    "scipy>=1.13,<1.17",
+    "pandas>=2.2,<3",
+    "pyarrow>=16,<22",
+    "matplotlib>=3.9,<3.11",
+    "pyyaml>=6.0.2,<7",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3,<9",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [".", "src"]
+
+[tool.uv]
+package = false

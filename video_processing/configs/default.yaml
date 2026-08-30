@@ -1,0 +1,69 @@
+video:
+  resize_width: null
+  stride: 1
+  max_frames: null
+  streaming: false
+  undistort: false
+
+tracking:
+  model_path: models/hand_landmarker.task
+  num_hands: 2
+  min_detection_confidence: 0.5
+  min_tracking_confidence: 0.5
+  min_presence_confidence: 0.5
+
+selection:
+  switch_margin: 0.15
+  switch_patience: 8
+  max_gap_frames: 15
+
+features:
+  source: normalized_2d
+  scale_mode: wrist_middle_mcp
+  scale_median_window: 21
+  min_scale: 0.0001
+
+smoothing:
+  method: ema
+  ema_alpha: 0.3
+  median_window: 5
+  savgol_window: 9
+  savgol_polyorder: 2
+  reset_gap_frames: 8
+
+gripper:
+  closed_threshold: 0.35
+  open_threshold: 0.90
+  auto_calibrate: true
+  auto_p_low: 10.0
+  auto_p_high: 90.0
+  enter_closed: 0.25
+  exit_closed: 0.40
+  enter_open: 0.75
+  exit_open: 0.60
+  min_state_frames: 4
+  max_missing_frames: 8
+  velocity_window: 5
+  closing_velocity: -0.02
+  opening_velocity: 0.02
+
+events:
+  min_hold_frames: 6
+  min_event_separation_s: 0.25
+
+visualization:
+  plot_window_s: 4.0
+  hud_scale: 1.0
+
+output:
+  write_parquet: true
+  write_video: true
+  write_plot: true
+
+quality:
+  min_detection_rate: 0.4
+  max_switch_rate: 0.15
+  min_signal_range: 0.05
+
+dataset:
+  root: null
