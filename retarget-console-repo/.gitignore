@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+jobs/
+_run_*.json
+_run_*.mp4
+_test_*.json

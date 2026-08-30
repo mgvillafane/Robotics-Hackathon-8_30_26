@@ -1,59 +1,63 @@
-<title>Retarget Console</title>
+<title>kinematIQ</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap');
 
   :root {
-    --bg: #f4f5f2;
+    --bg: #eef2f7;
     --panel: #ffffff;
-    --panel-2: #ececE6;
-    --ink: #1b1f23;
-    --muted: #5b6470;
-    --line: #d7dbde;
-    --accent: #d9550c;
+    --panel-2: #e6ecf4;
+    --ink: #16233a;
+    --muted: #51607a;
+    --line: #d4dde9;
+    --accent: #2f6bed;
     --accent-ink: #ffffff;
     --ok: #1f9d5c;
-    --warn: #a86a00;
-    --crit: #c93756;
-    --focus: #2a6fd9;
+    --warn: #b7791f;
+    --crit: #d64562;
+    --focus: #2f6bed;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #0f1214;
-      --panel: #161a1d;
-      --panel-2: #1d2227;
-      --ink: #eef0f1;
-      --muted: #8b949c;
-      --line: #2a3034;
-      --accent: #ff7a33;
-      --accent-ink: #14171a;
+      --bg: #0c1424;
+      --panel: #131d31;
+      --panel-2: #1b2740;
+      --ink: #f2f6fc;
+      --muted: #c6d2e6;
+      --line: #2c3a55;
+      --accent: #6ba6ff;
+      --accent-ink: #0b1220;
       --ok: #3ddc84;
       --warn: #f0b429;
-      --crit: #ff5470;
-      --focus: #5b9bff;
+      --crit: #ff6b86;
+      --focus: #6ba6ff;
     }
   }
   :root[data-theme="dark"] {
-    --bg: #0f1214;
-    --panel: #161a1d;
-    --panel-2: #1d2227;
-    --ink: #eef0f1;
-    --muted: #8b949c;
-    --line: #2a3034;
-    --accent: #ff7a33;
-    --accent-ink: #14171a;
+    --bg: #0c1424;
+    --panel: #131d31;
+    --panel-2: #1b2740;
+    --ink: #f2f6fc;
+    --muted: #c6d2e6;
+    --line: #2c3a55;
+    --accent: #6ba6ff;
+    --accent-ink: #0b1220;
     --ok: #3ddc84;
     --warn: #f0b429;
-    --crit: #ff5470;
-    --focus: #5b9bff;
+    --crit: #ff6b86;
+    --focus: #6ba6ff;
   }
 
   * { box-sizing: border-box; }
   body {
     background: var(--bg);
     color: var(--ink);
-    font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
-    font-size: 14.5px;
+    font-family: 'Sora', ui-sans-serif, system-ui, sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.5;
   }
+  [hidden] { display: none !important; }
   ::selection { background: var(--accent); color: var(--accent-ink); }
   :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 
@@ -67,34 +71,47 @@
     flex-wrap: wrap;
     padding-bottom: 16px;
     margin-bottom: 18px;
-    border-bottom: 2px solid var(--ink);
+    border-bottom: 2px solid var(--accent);
   }
-  header.top .id { display: flex; align-items: baseline; gap: 10px; }
+  header.top .id { display: flex; align-items: center; gap: 12px; }
+  header.top .mark {
+    width: 34px; height: 34px; flex: none;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 9px;
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+  }
+  header.top .mark svg { width: 22px; height: 22px; display: block; }
+  header.top .wordmark { display: flex; flex-direction: column; gap: 1px; }
   header.top h1 {
-    font-family: 'IBM Plex Sans Condensed', sans-serif;
-    font-weight: 700;
-    font-size: 22px;
+    font-family: 'Sora', ui-sans-serif, sans-serif;
+    font-weight: 800;
+    font-size: 26px;
+    letter-spacing: -0.01em;
+    line-height: 1;
     margin: 0;
   }
-  header.top .sub {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11.5px;
+  header.top h1 .iq { color: var(--accent); }
+  header.top .slogan {
+    font-size: 12.5px;
+    font-weight: 600;
     color: var(--muted);
+    letter-spacing: 0.01em;
   }
   .pills { display: flex; gap: 8px; flex-wrap: wrap; }
   .pill {
     display: flex;
     align-items: center;
     gap: 6px;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
+    font-family: 'Sora', ui-sans-serif, sans-serif;
+    font-size: 11.5px;
+    font-weight: 700;
     letter-spacing: 0.03em;
     text-transform: uppercase;
     padding: 6px 10px;
     border-radius: 20px;
     border: 1px solid var(--line);
     background: var(--panel);
-    color: var(--muted);
+    color: var(--ink);
   }
   .pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); flex: none; }
   .pill.ok { color: var(--ink); }
@@ -127,17 +144,18 @@
     background: var(--panel-2);
   }
   .card .head .label {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
+    font-family: 'Sora', ui-sans-serif, sans-serif;
+    font-size: 12px;
+    font-weight: 700;
     letter-spacing: 0.05em;
     text-transform: uppercase;
-    color: var(--muted);
+    color: var(--ink);
   }
   .card .head .hint {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10.5px;
+    font-family: 'Sora', ui-sans-serif, sans-serif;
+    font-size: 11px;
     color: var(--muted);
-    opacity: 0.8;
+    opacity: 1;
   }
 
   .stage {
@@ -153,9 +171,9 @@
   .stage video { object-fit: contain; background: #000; }
   .stage .placeholder-msg {
     position: absolute; left: 12px; bottom: 12px;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px; color: var(--muted);
-    background: color-mix(in srgb, var(--panel) 80%, transparent);
+    font-family: 'Sora', ui-sans-serif, sans-serif;
+    font-size: 12px; color: var(--ink);
+    background: color-mix(in srgb, var(--panel) 82%, transparent);
     padding: 4px 8px; border-radius: 4px; border: 1px solid var(--line);
     max-width: 80%;
   }
@@ -174,9 +192,9 @@
   button.iconbtn:hover { border-color: var(--accent); color: var(--accent); }
   input[type="range"] { flex: 1; accent-color: var(--accent); }
   .time {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11.5px;
-    color: var(--muted);
+    font-family: 'Sora', ui-sans-serif, sans-serif;
+    font-size: 12.5px;
+    color: var(--ink);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
   }
@@ -188,8 +206,8 @@
     font-size: 12.5px;
   }
   .btn {
-    font-family: 'IBM Plex Sans', sans-serif;
-    font-size: 12px; font-weight: 500;
+    font-family: 'Sora', ui-sans-serif, sans-serif;
+    font-size: 13px; font-weight: 600;
     padding: 6px 12px; border-radius: 6px;
     border: 1px solid var(--line); background: var(--panel-2); color: var(--ink);
     cursor: pointer;
@@ -198,7 +216,7 @@
   .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
   .btn.primary:hover { opacity: 0.9; color: var(--accent-ink); }
   input[type="file"] { display: none; }
-  .filenote { color: var(--muted); font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
+  .filenote { color: var(--muted); font-family: 'Sora', ui-sans-serif, sans-serif; font-size: 12px; }
 
   .readout-row {
     margin-top: 8px;
@@ -220,118 +238,72 @@
   .readout-head {
     margin-top: 18px;
     display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;
-    color: var(--muted);
+    font-family: 'Sora', ui-sans-serif, sans-serif;
+    font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--ink);
   }
   .joint .name {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em;
+    font-family: 'Sora', ui-sans-serif, sans-serif;
+    font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
     color: var(--muted);
     margin-bottom: 4px;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .joint .val {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 17px; font-weight: 500;
+    font-family: 'Sora', ui-sans-serif, sans-serif;
+    font-size: 21px; font-weight: 700;
     font-variant-numeric: tabular-nums;
   }
   .joint .val .deg { color: var(--muted); font-size: 12px; }
 
-  .params-card { margin-top: 16px; }
-  .params-card .body {
-    padding: 16px;
-    display: grid;
-    grid-template-columns: 1.15fr 1fr;
-    gap: 22px;
-  }
-  @media (max-width: 780px) { .params-card .body { grid-template-columns: 1fr; } }
-
-  .limits-table { width: 100%; border-collapse: collapse; }
-  .limits-table th, .limits-table td { padding: 5px 6px; }
-  .limits-table th {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em;
-    color: var(--muted); text-align: left; font-weight: 500;
-    border-bottom: 1px solid var(--line);
-  }
-  .limits-table td.jname {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11.5px; color: var(--ink);
-    white-space: nowrap;
-  }
-  .limits-table td.limited .jname { color: var(--warn); }
-  .limits-table input[type="number"] {
-    width: 62px;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 12px;
-    padding: 4px 6px;
-    border-radius: 4px;
-    border: 1px solid var(--line);
-    background: var(--panel-2);
-    color: var(--ink);
-  }
-
-  .scenario-controls { display: flex; flex-direction: column; gap: 16px; }
-  .scenario-field .flabel {
-    display: flex; justify-content: space-between; align-items: baseline;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;
-    color: var(--muted);
-    margin-bottom: 6px;
-  }
-  .scenario-field .flabel .fval { color: var(--accent); font-size: 12.5px; text-transform: none; letter-spacing: 0; }
-  .scenario-field input[type="range"] { width: 100%; accent-color: var(--accent); }
-  .scenario-field .fnote { font-size: 11.5px; color: var(--muted); margin-top: 5px; line-height: 1.5; }
-  .legend-clamped { display: inline-flex; align-items: center; gap: 5px; font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--muted); }
+  .legend-clamped { display: inline-flex; align-items: center; gap: 5px; font-family: 'Sora', ui-sans-serif, sans-serif; font-size: 11px; color: var(--muted); }
   .legend-clamped .sw { width: 8px; height: 8px; border-radius: 2px; background: var(--warn); }
 
-  .lower {
-    margin-top: 16px;
-    display: grid;
-    grid-template-columns: 320px 1fr;
-    gap: 16px;
-  }
-  @media (max-width: 860px) { .lower { grid-template-columns: 1fr; } }
+  .procroute { border-top: 1px dashed var(--line); margin-top: 4px; padding-top: 12px; align-items: center; }
+  .procroute .procname { font-family: 'Sora', ui-sans-serif, sans-serif; font-size: 11px; color: var(--muted); }
+  .procfield { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted);
+    font-family: 'Sora', ui-sans-serif, sans-serif; text-transform: uppercase; letter-spacing: .03em; }
+  .procfield input, .procfield select { width: 62px; padding: 4px 6px; border-radius: 5px;
+    border: 1px solid var(--line); background: var(--panel-2); color: var(--ink);
+    font-family: 'Sora', ui-sans-serif, sans-serif; font-size: 12px; }
+  .procfield select { width: 74px; }
+  #procRun[disabled] { opacity: .45; cursor: not-allowed; }
+  .procroute.busy #procStatus { color: var(--accent); }
 
-  .relay .body { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
-  .relay input[type="text"] {
+  .signal-card { margin-top: 16px; }
+  .signal-inner {
+    margin: 10px 14px 12px;
+    line-height: 0;
+  }
+  .signal-frame {
+    position: relative;
+    display: block;
+  }
+  .signal-frame img {
+    display: block;
     width: 100%;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 12.5px;
-    padding: 8px 10px;
+    height: auto;
+    max-height: 300px;
+    object-fit: contain;
     border-radius: 6px;
-    border: 1px solid var(--line);
-    background: var(--panel-2);
-    color: var(--ink);
+    background: #ffffff;
   }
-  .relay-status {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11.5px;
-    color: var(--muted);
-    line-height: 1.55;
+  .signal-head {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    margin-left: -1px;
+    background: var(--accent);
+    box-shadow: 0 0 6px var(--accent);
+    pointer-events: none;
   }
-  .relay-status strong { color: var(--ink); }
-  .relay-status .note { display: block; margin-top: 6px; opacity: 0.8; }
-
-  .log .body { padding: 0; }
-  .log pre {
-    margin: 0;
-    max-height: 220px;
-    overflow: auto;
-    padding: 12px 14px;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    line-height: 1.6;
-    color: var(--muted);
-  }
-  .log pre .fresh { color: var(--ink); }
 
   footer.foot {
     margin-top: 22px;
     padding-top: 14px;
     border-top: 1px solid var(--line);
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: 'Sora', ui-sans-serif, sans-serif;
     font-size: 11px;
     color: var(--muted);
     display: flex;
@@ -345,13 +317,21 @@
 
   <header class="top">
     <div class="id">
-      <h1>Retarget Console</h1>
-      <span class="sub">orchestrator &middot; video &rarr; sim &rarr; arm</span>
+      <span class="mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent)">
+          <path d="M4 20 L11 12 L20 4" />
+          <circle cx="11" cy="12" r="2.1" fill="currentColor" stroke="none" />
+          <circle cx="20" cy="4" r="2.1" fill="currentColor" stroke="none" />
+        </svg>
+      </span>
+      <div class="wordmark">
+        <h1>kinemat<span class="iq">IQ</span></h1>
+        <span class="slogan">capture kinesis, train intelligence</span>
+      </div>
     </div>
     <div class="pills">
       <span class="pill ok" id="pillPerception"><span class="dot"></span>perception: sample data</span>
       <span class="pill" id="pillSim"><span class="dot"></span>simulation: connecting</span>
-      <span class="pill" id="pillRelay"><span class="dot"></span>arm relay: idle</span>
     </div>
   </header>
 
@@ -379,27 +359,37 @@
         <button class="btn" id="resetSample">Use sample data</button>
         <span class="filenote" id="trajNote">sample: 5.2s pick&ndash;place&ndash;package loop</span>
       </div>
+      <div class="fileroute procroute">
+        <label class="btn primary" for="procFile">Process new video&hellip;</label>
+        <input type="file" id="procFile" accept="video/mp4,video/*">
+        <span class="procname" id="procName">no file chosen</span>
+        <label class="procfield">start s <input type="number" id="procStart" min="0" step="0.5" placeholder="0"></label>
+        <label class="procfield">end s <input type="number" id="procEnd" min="0" step="0.5" placeholder="end"></label>
+        <button class="btn" id="procRun" disabled>Run MediaPipe</button>
+        <span class="filenote" id="procStatus">tracks the hand on the server and builds the trajectory</span>
+      </div>
     </div>
 
     <div class="card">
       <div class="head">
         <span class="label">02 &middot; simulation</span>
-        <span class="hint">reference rig &mdash; swap for teammate's WebGL sim</span>
+        <span class="hint">SO-101 arm &mdash; driven by the retargeted pose</span>
       </div>
       <div class="stage">
-        <iframe id="rigFrame" title="Reference arm rig"></iframe>
+        <iframe id="rigFrame" title="Arm simulation"></iframe>
       </div>
       <div class="transport" style="justify-content: space-between;">
         <span class="filenote">contract: <code>postMessage({type:"pose-frame", t, angles, jointNames})</code></span>
         <span class="time" id="simPing">no frames sent yet</span>
       </div>
       <div class="fileroute">
-        <input type="text" id="simUrl" placeholder="https://your-sim-host/path/to/sim" style="flex:1; min-width:160px; font-family:'IBM Plex Mono',monospace; font-size:12px; padding:6px 10px; border-radius:6px; border:1px solid var(--line); background:var(--panel-2); color:var(--ink);">
-        <button class="btn primary" id="loadSimBtn">Load sim</button>
-        <button class="btn" id="useRefRigBtn">Use reference rig</button>
+        <button class="btn primary" id="use3dArmBtn">3D arm (SO-101)</button>
+        <button class="btn" id="useRefRigBtn">Reference rig</button>
+        <input type="text" id="simUrl" placeholder="or a custom sim URL" style="flex:1; min-width:140px; font-family:'Sora', ui-sans-serif, sans-serif; font-size:12px; padding:6px 10px; border-radius:6px; border:1px solid var(--line); background:var(--panel-2); color:var(--ink);">
+        <button class="btn" id="loadSimBtn">Load</button>
       </div>
       <details style="border-top:1px solid var(--line); padding: 10px 14px; font-size:12.5px;">
-        <summary style="cursor:pointer; color:var(--muted); font-family:'IBM Plex Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:.04em;">what your sim needs to add</summary>
+        <summary style="cursor:pointer; color:var(--muted); font-family:'Sora', ui-sans-serif, sans-serif; font-size:11px; text-transform:uppercase; letter-spacing:.04em;">what your sim needs to add</summary>
         <pre style="margin:10px 0 0; font-size:11px; white-space:pre-wrap;">window.addEventListener('message', (ev) => {
   if (ev.data &amp;&amp; ev.data.type === 'pose-frame') {
     // ev.data.angles is [base_yaw, shoulder_pitch, elbow_pitch,
@@ -412,77 +402,27 @@ parent.postMessage({type: 'pose-ready'}, '*'); // tells the console you're liste
     </div>
   </div>
 
+  <div class="card signal-card" id="signalCard" hidden>
+    <div class="head">
+      <span class="label">perception signal</span>
+      <span class="hint">mediapipe gripper analysis &mdash; windowed to the clip, playhead follows the clock</span>
+    </div>
+    <div class="signal-inner">
+      <span class="signal-frame">
+        <img id="signalImg" alt="MediaPipe gripper analysis for this window">
+        <div class="signal-head" id="signalHead"></div>
+      </span>
+    </div>
+  </div>
+
   <div class="readout-head">
-    <span>applied joint angles &mdash; after scenario parameters, this is what's sent to the sim + relay</span>
+    <span>applied joint angles &mdash; sent to the simulation</span>
     <span class="legend-clamped"><span class="sw"></span> limit or speed cap active</span>
   </div>
   <div class="readout-row" id="jointReadout"></div>
 
-  <div class="card params-card">
-    <div class="head">
-      <span class="label">03 &middot; scenario parameters</span>
-      <span class="hint">tune the simulation, not the source video</span>
-    </div>
-    <div class="body">
-      <div>
-        <table class="limits-table" aria-label="Joint angle limits">
-          <thead><tr><th>joint</th><th>min &deg;</th><th>max &deg;</th></tr></thead>
-          <tbody id="limitsBody"></tbody>
-        </table>
-      </div>
-      <div class="scenario-controls">
-        <div class="scenario-field">
-          <div class="flabel"><span>max joint speed</span><span class="fval" id="speedVal">220&deg;/s</span></div>
-          <input type="range" id="speedSlider" min="30" max="400" value="220" step="5">
-          <div class="fnote">Caps how fast any joint can change per second. Lower it to see the arm visibly fall behind a fast retargeted move.</div>
-        </div>
-        <div class="scenario-field">
-          <div class="flabel"><span>base mounting offset</span><span class="fval" id="baseVal">0&deg;</span></div>
-          <input type="range" id="baseSlider" min="-45" max="45" value="0" step="1">
-          <div class="fnote">Where the arm is bolted relative to the line &mdash; shifts every frame's base yaw by this much.</div>
-        </div>
-        <div class="scenario-field">
-          <div class="flabel"><span>payload weight</span><span class="fval" id="weightVal">0.0 kg</span></div>
-          <input type="range" id="weightSlider" min="0" max="3" value="0" step="0.1">
-          <div class="fnote">Heuristic, not a physics engine: heavier loads lower the effective speed cap and add visible droop at the elbow/wrist while the gripper is closed.</div>
-        </div>
-        <button class="btn" id="resetParams" style="align-self:flex-start;">Reset to defaults</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="lower">
-    <div class="card relay">
-      <div class="head">
-        <span class="label">04 &middot; arm relay <span style="opacity:.6; text-transform:none; font-family:'IBM Plex Sans',sans-serif;">(optional)</span></span>
-        <span class="hint">WebSocket &middot; deprioritized for this pass</span>
-      </div>
-      <div class="body">
-        <input type="text" id="wsUrl" value="ws://localhost:8765" spellcheck="false">
-        <div style="display:flex; gap:8px;">
-          <button class="btn primary" id="wsConnect" style="flex:1;">Connect</button>
-          <button class="btn" id="wsDisconnect" style="flex:1;">Disconnect</button>
-        </div>
-        <div class="relay-status" id="wsStatus">
-          <strong>Not connected.</strong> Frames are computed and shown here, but nothing is sent to hardware.
-          <span class="note">Note: a page served over https can't open a plain ws:// socket (mixed content). Run your relay with wss://, or serve this console over http while developing against a local relay.</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="card log">
-      <div class="head">
-        <span class="label">frame log</span>
-        <span class="hint">last messages sent to sim + relay</span>
-      </div>
-      <div class="body">
-        <pre id="logBox">waiting for first frame&hellip;</pre>
-      </div>
-    </div>
-  </div>
-
   <footer class="foot">
-    <span>retarget console &middot; prototype v0</span>
+    <span>kinematIQ</span>
     <span>joint order: base_yaw, shoulder_pitch, elbow_pitch, wrist_pitch, wrist_roll, gripper</span>
   </footer>
 </div>
@@ -497,10 +437,10 @@ parent.postMessage({type: 'pose-ready'}, '*'); // tells the console you're liste
   canvas { display:block; width:100%; height:100%; }
   .tag {
     position:absolute; top:8px; left:10px;
-    font: 10px 'IBM Plex Mono', ui-monospace, monospace;
+    font: 10px 'Sora', ui-sans-serif, sans-serif;
     color:#8b949c; letter-spacing:.04em; text-transform:uppercase;
   }
-  .tag b { color:#ff7a33; }
+  .tag b { color:#5b9bff; }
 </style>
 </head>
 <body>
@@ -564,7 +504,7 @@ parent.postMessage({type: 'pose-ready'}, '*'); // tells the console you're liste
     ctx.fillStyle = '#2a3034';
     ctx.fillRect(originX-18, originY-6, 36, 14);
 
-    ctx.strokeStyle = haveFrame ? '#ff7a33' : '#4a5157';
+    ctx.strokeStyle = haveFrame ? '#5b9bff' : '#4a5157';
     ctx.lineCap = 'round';
     ctx.lineWidth = 10;
     ctx.beginPath(); ctx.moveTo(originX, originY); ctx.lineTo(elbowPt[0], elbowPt[1]); ctx.stroke();
@@ -617,43 +557,10 @@ parent.postMessage({type: 'pose-ready'}, '*'); // tells the console you're liste
     { min:   0,  max:  90 }
   ];
 
-  // ---------- scenario parameters: joint limits, speed cap, base offset, payload weight ----------
-  var limits = DEFAULT_LIMITS.map(function(l){ return { min: l.min, max: l.max }; });
-  var limitsBody = document.getElementById('limitsBody');
-  JOINT_LABELS.forEach(function(label, i){
-    var tr = document.createElement('tr');
-    tr.id = 'limrow' + i;
-    tr.innerHTML = '<td class="jname">' + label + '</td>' +
-      '<td><input type="number" id="lmin' + i + '" value="' + limits[i].min + '"></td>' +
-      '<td><input type="number" id="lmax' + i + '" value="' + limits[i].max + '"></td>';
-    limitsBody.appendChild(tr);
-    document.getElementById('lmin' + i).addEventListener('input', function(e){ limits[i].min = parseFloat(e.target.value) || 0; });
-    document.getElementById('lmax' + i).addEventListener('input', function(e){ limits[i].max = parseFloat(e.target.value) || 0; });
-  });
-
-  var speedSlider = document.getElementById('speedSlider');
-  var baseSlider = document.getElementById('baseSlider');
-  var weightSlider = document.getElementById('weightSlider');
-  var speedVal = document.getElementById('speedVal');
-  var baseVal = document.getElementById('baseVal');
-  var weightVal = document.getElementById('weightVal');
-
-  speedSlider.addEventListener('input', function(){ speedVal.textContent = speedSlider.value + '°/s'; });
-  baseSlider.addEventListener('input', function(){ baseVal.textContent = (baseSlider.value>0?'+':'') + baseSlider.value + '°'; });
-  weightSlider.addEventListener('input', function(){ weightVal.textContent = parseFloat(weightSlider.value).toFixed(1) + ' kg'; });
-
+  // ---------- fixed modelling constants (scenario-parameters UI removed) ----------
+  var limits = DEFAULT_LIMITS;      // joint angle limits, degrees
+  var MAX_JOINT_SPEED = 220;        // slew cap, deg/s
   var skipSlewOnce = true;
-  document.getElementById('resetParams').addEventListener('click', function(){
-    limits = DEFAULT_LIMITS.map(function(l){ return { min: l.min, max: l.max }; });
-    JOINT_LABELS.forEach(function(_,i){
-      document.getElementById('lmin'+i).value = limits[i].min;
-      document.getElementById('lmax'+i).value = limits[i].max;
-    });
-    speedSlider.value = 220; speedVal.textContent = '220°/s';
-    baseSlider.value = 0; baseVal.textContent = '0°';
-    weightSlider.value = 0; weightVal.textContent = '0.0 kg';
-    skipSlewOnce = true;
-  });
 
   // ---------- sample trajectory: pick > grasp > lift > carry > place > release > retract ----------
   var SAMPLE_KEYS = [
@@ -708,32 +615,53 @@ parent.postMessage({type: 'pose-ready'}, '*'); // tells the console you're liste
     };
   }
 
+  // Apply a parsed trajectory object (from a .json file or the /api/process
+  // response). Throws on a malformed object.
+  function applyTrajectory(data){
+    if (!data || !data.frames || !data.frames.length) throw new Error('no frames[] in trajectory');
+    var frames = data.frames.slice().sort(function(a,b){return a.t-b.t;});
+    traj = { kind:'custom', duration: frames[frames.length-1].t, angleAt: angleAtCustom(frames), landmarksAt: null };
+    document.getElementById('trajNote').textContent = 'custom: ' + frames.length + ' frames, ' + frames[frames.length-1].t.toFixed(1) + 's';
+    document.getElementById('pillPerception').innerHTML = '<span class="dot"></span>perception: custom (' + frames.length + ' frames)';
+    document.getElementById('scrub').max = 1000;
+    skipSlewOnce = true;
+    setSignal(data.signal_png, data.signal_x);
+  }
+
   document.getElementById('trajFile').addEventListener('change', function(e){
     var file = e.target.files[0];
     if (!file) return;
     var reader = new FileReader();
     reader.onload = function(){
-      try {
-        var data = JSON.parse(reader.result);
-        if (!data.frames || !data.frames.length) throw new Error('no frames[] in file');
-        var frames = data.frames.slice().sort(function(a,b){return a.t-b.t;});
-        traj = { kind:'custom', duration: frames[frames.length-1].t, angleAt: angleAtCustom(frames), landmarksAt: null };
-        document.getElementById('trajNote').textContent = 'custom: ' + frames.length + ' frames, ' + frames[frames.length-1].t.toFixed(1) + 's';
-        document.getElementById('pillPerception').innerHTML = '<span class="dot"></span>perception: custom (' + frames.length + ' frames)';
-        document.getElementById('scrub').max = 1000;
-        skipSlewOnce = true;
-      } catch(err){
-        document.getElementById('trajNote').textContent = 'could not parse file: ' + err.message;
-      }
+      try { applyTrajectory(JSON.parse(reader.result)); }
+      catch(err){ document.getElementById('trajNote').textContent = 'could not parse file: ' + err.message; }
     };
     reader.readAsText(file);
   });
+
+  // ---------- perception signal panel ----------
+  var signalCard = document.getElementById('signalCard');
+  var signalImg = document.getElementById('signalImg');
+  var signalHead = document.getElementById('signalHead');
+  var signalAxes = [0.115, 0.985];  // data-area x extent as fraction of image width
+
+  function setSignal(dataUri, axes){
+    if (dataUri){
+      signalImg.src = dataUri;
+      signalAxes = (axes && axes.length === 2) ? axes : [0.115, 0.985];
+      signalCard.hidden = false;
+    } else {
+      signalImg.removeAttribute('src');
+      signalCard.hidden = true;
+    }
+  }
 
   document.getElementById('resetSample').addEventListener('click', function(){
     traj = { kind: 'sample', duration: SAMPLE_DURATION, angleAt: sampleAt, landmarksAt: null };
     document.getElementById('trajNote').textContent = 'sample: 5.2s pick–place–package loop';
     document.getElementById('pillPerception').innerHTML = '<span class="dot"></span>perception: sample data';
     skipSlewOnce = true;
+    setSignal(null);
   });
 
   // ---------- video + clock ----------
@@ -751,13 +679,76 @@ parent.postMessage({type: 'pose-ready'}, '*'); // tells the console you're liste
   var internalT = 0;
   var lastTick = null;
 
+  function useVideoSrc(src){
+    video.src = src;
+    hasVideo = true;
+    placeholderMsg.style.display = 'none';
+    octx.clearRect(0, 0, overlay.width, overlay.height);
+    video.load();
+    video.play().catch(function(){});
+  }
+
   document.getElementById('videoFile').addEventListener('change', function(e){
     var file = e.target.files[0];
     if (!file) return;
-    video.src = URL.createObjectURL(file);
-    hasVideo = true;
-    placeholderMsg.style.display = 'none';
-    video.play().catch(function(){});
+    useVideoSrc(URL.createObjectURL(file));
+  });
+
+  // ---------- process a new video through ../video_processing (server) ----------
+  var procFile = document.getElementById('procFile');
+  var procRun = document.getElementById('procRun');
+  var procStatus = document.getElementById('procStatus');
+  var procRoute = document.querySelector('.procroute');
+
+  procFile.addEventListener('change', function(){
+    var f = procFile.files[0];
+    document.getElementById('procName').textContent = f ? f.name : 'no file chosen';
+    procRun.disabled = !f;
+  });
+
+  procRun.addEventListener('click', function(){
+    var f = procFile.files[0];
+    if (!f) return;
+    var fd = new FormData();
+    fd.append('video', f);
+    var s = document.getElementById('procStart').value;
+    var e = document.getElementById('procEnd').value;
+    if (s !== '') fd.append('start_s', s);
+    if (e !== '') fd.append('end_s', e);
+
+    procRun.disabled = true;
+    procRoute.classList.add('busy');
+    var t0 = Date.now();
+    var tick = setInterval(function(){
+      procStatus.textContent = 'processing on the server… ' + Math.round((Date.now()-t0)/1000) + 's (MediaPipe on CPU, ~real-time)';
+    }, 1000);
+    procStatus.textContent = 'uploading…';
+
+    fetch('/api/process', { method: 'POST', body: fd })
+      .then(function(r){ return r.json().then(function(j){ return { ok: r.ok, j: j }; }); })
+      .then(function(res){
+        clearInterval(tick);
+        procRoute.classList.remove('busy');
+        procRun.disabled = false;
+        if (!res.ok || !res.j.ok){
+          procStatus.textContent = 'failed: ' + (res.j && (res.j.error || res.j.stderr) || 'server error');
+          return;
+        }
+        var j = res.j;
+        applyTrajectory(j.trajectory);
+        if (j.overlay_url) useVideoSrc(j.overlay_url);
+        var sm = j.summary || {};
+        var det = sm.detection_rate != null ? Math.round(sm.detection_rate*100) + '% detected' : '';
+        var fl = (sm.flags && sm.flags.length) ? ' · ' + sm.flags.join(',') : '';
+        procStatus.textContent = 'done in ' + (sm.elapsed_s||'?') + 's — ' + det +
+          ' · ' + (sm.grasp_events||0) + ' grasps' + fl;
+      })
+      .catch(function(err){
+        clearInterval(tick);
+        procRoute.classList.remove('busy');
+        procRun.disabled = false;
+        procStatus.textContent = 'failed: ' + err.message + ' (is serve.py running?)';
+      });
   });
 
   playBtn.addEventListener('click', function(){
@@ -821,7 +812,7 @@ parent.postMessage({type: 'pose-ready'}, '*'); // tells the console you're liste
     var a3 = a2 + deg2rad(wrist);
     var handPt = [wristPt[0] + L3*Math.cos(a3), wristPt[1] + L3*Math.sin(a3)];
 
-    var accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#ff7a33';
+    var accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#2f6bed';
     octx.strokeStyle = accent;
     octx.lineWidth = 4;
     octx.lineCap = 'round';
@@ -881,6 +872,10 @@ parent.postMessage({type: 'pose-ready'}, '*'); // tells the console you're liste
     armSimReadyCheck();
   }
 
+  // The SO-101 3D simulator (../simulations) built and served by this server at /sim/.
+  function loadArmSimulator(){ loadCustomSim('/sim/'); }
+
+  document.getElementById('use3dArmBtn').addEventListener('click', loadArmSimulator);
   document.getElementById('loadSimBtn').addEventListener('click', function(){
     var url = simUrlInput.value.trim();
     if (url) loadCustomSim(url);
@@ -895,80 +890,19 @@ parent.postMessage({type: 'pose-ready'}, '*'); // tells the console you're liste
     }
   });
 
-  loadReferenceRig();
+  // Prefer the SO-101 simulator; fall back to the built-in 2D rig if it isn't built.
+  fetch('/sim-status').then(function(r){ return r.json(); })
+    .then(function(s){ if (s && s.built) loadArmSimulator(); else loadReferenceRig(); })
+    .catch(function(){ loadReferenceRig(); });
 
-  // ---------- websocket relay ----------
-  var ws = null;
-  var wsUrlInput = document.getElementById('wsUrl');
-  var wsStatus = document.getElementById('wsStatus');
-  var pillRelay = document.getElementById('pillRelay');
-  var latestFrameMsg = null;
-
-  function setRelayStatus(state, text){
-    pillRelay.className = 'pill' + (state==='ok'?' ok':state==='warn'?' warn':state==='crit'?' crit':'');
-    var label = state==='ok' ? 'connected' : state==='warn' ? 'connecting' : state==='crit' ? 'error' : 'idle';
-    pillRelay.innerHTML = '<span class="dot"></span>arm relay: '+label;
-    wsStatus.innerHTML = text;
-  }
-
-  document.getElementById('wsConnect').addEventListener('click', function(){
-    var url = wsUrlInput.value.trim();
-    if (!url) return;
-    try {
-      ws = new WebSocket(url);
-      setRelayStatus('warn', '<strong>Connecting to '+url+'&hellip;</strong>');
-      ws.onopen = function(){ setRelayStatus('ok', '<strong>Connected.</strong> Streaming joint frames at ~25&nbsp;Hz.'); };
-      ws.onclose = function(){ setRelayStatus('idle', '<strong>Disconnected.</strong> Frames are computed but not sent.<span class="note">If this closed immediately, the relay likely isn\'t running yet, or the page (https) tried a plain ws:// socket &mdash; mixed content is blocked by the browser. Use wss:// or serve this page over http during development.</span>'); };
-      ws.onerror = function(){ setRelayStatus('crit', '<strong>Connection error.</strong><span class="note">Check the relay is running at that address, and that ws:// vs wss:// matches how this page is served.</span>'); };
-    } catch(err){
-      setRelayStatus('crit', '<strong>Could not open socket:</strong> '+err.message);
-    }
-  });
-  document.getElementById('wsDisconnect').addEventListener('click', function(){
-    if (ws) { ws.close(); ws = null; }
-    setRelayStatus('idle', '<strong>Not connected.</strong> Frames are computed and shown here, but nothing is sent to hardware.');
-  });
-
-  setInterval(function(){
-    if (ws && ws.readyState === WebSocket.OPEN && latestFrameMsg){
-      ws.send(JSON.stringify(latestFrameMsg));
-    }
-  }, 40);
-
-  // ---------- message log ----------
-  var logBox = document.getElementById('logBox');
-  var lastLog = 0;
-
-  function pushLog(msg){
-    var now = performance.now();
-    if (now - lastLog < 220) return;
-    lastLog = now;
-    var line = '<span class="fresh">t=' + msg.t.toFixed(2) + 's</span>  [' +
-      msg.angles.map(function(v){return v.toFixed(1);}).join(', ') + ']';
-    var lines = logBox.innerHTML === 'waiting for first frame&hellip;' ? [] : logBox.innerHTML.split('\n');
-    lines.unshift(line);
-    if (lines.length > 12) lines.length = 12;
-    logBox.innerHTML = lines.join('\n');
-  }
-
-  // ---------- scenario transform: raw retargeted angles -> applied angles ----------
+  // ---------- joint-limit + slew transform: raw retargeted angles -> applied angles ----------
   var appliedPrev = null;   // last angles actually sent, for the slew-rate limiter
   var lastTransformTime = null;
 
   function clamp(v, lo, hi){ return v < lo ? lo : (v > hi ? hi : v); }
 
   function applyScenario(raw, dt){
-    var baseOffset = parseFloat(baseSlider.value) || 0;
-    var weight = parseFloat(weightSlider.value) || 0;
-    var maxSpeed = (parseFloat(speedSlider.value) || 220) / (1 + weight * 0.35);
-
-    var holding = raw[5] > 35; // gripper mostly closed -> treat as carrying the object
-    var droop = holding ? weight * 6 : 0;
-
     var target = raw.slice();
-    target[0] = target[0] + baseOffset;
-    target[2] = target[2] + droop;        // elbow sags
-    target[3] = target[3] + droop * 0.6;  // wrist follows partway
 
     var clampedFlags = [false,false,false,false,false,false];
     for (var i=0;i<6;i++){
@@ -981,7 +915,7 @@ parent.postMessage({type: 'pose-ready'}, '*'); // tells the console you're liste
       appliedPrev = target.slice();
       skipSlewOnce = false;
     } else {
-      var maxDelta = maxSpeed * dt;
+      var maxDelta = MAX_JOINT_SPEED * dt;
       for (var j=0;j<6;j++){
         var delta = target[j] - appliedPrev[j];
         if (Math.abs(delta) > maxDelta){
@@ -1017,12 +951,23 @@ parent.postMessage({type: 'pose-ready'}, '*'); // tells the console you're liste
     var trajT = hasVideo ? (t % traj.duration) : t;
     var rawAngles = traj.angleAt(trajT);
 
+    if (!signalCard.hidden && traj.duration){
+      var sf = signalAxes[0] + (signalAxes[1] - signalAxes[0]) *
+               Math.max(0, Math.min(1, trajT / traj.duration));
+      signalHead.style.left = (sf * 100) + '%';
+    }
+
     var dt = lastTransformTime === null ? 1/60 : Math.max(0, Math.min(0.25, (now - lastTransformTime)/1000));
     lastTransformTime = now;
     var scenario = applyScenario(rawAngles, dt);
     var angles = scenario.angles;
 
-    drawSkeleton(angles);
+    // Retarget skeleton is only drawn over the source when there is no video.
+    // With a video loaded, the left window shows the footage (and its own
+    // baked-in tracking overlay) clean -- the retargeted arm lives in the
+    // SIMULATION panel.
+    if (hasVideo) octx.clearRect(0, 0, overlay.width, overlay.height);
+    else drawSkeleton(angles);
 
     jointEls.forEach(function(el,i){
       el.innerHTML = angles[i].toFixed(1) + '<span class="deg">&deg;</span>';
@@ -1030,10 +975,8 @@ parent.postMessage({type: 'pose-ready'}, '*'); // tells the console you're liste
     });
 
     var msg = { type: 'pose-frame', t: t, angles: angles, jointNames: JOINT_NAMES };
-    latestFrameMsg = msg;
     if (rigFrame.contentWindow) rigFrame.contentWindow.postMessage(msg, '*');
     simPing.textContent = 'last frame: t=' + t.toFixed(2) + 's';
-    pushLog(msg);
 
     requestAnimationFrame(tick);
   }
