@@ -3,7 +3,8 @@ import { DEFAULT_ROBOT_ID, getRobot } from '../robots/registry';
 import type { RobotDefinition } from '../robots/types';
 import { resolveLimits, type JointLimits } from '../io/parse';
 import type { SourceKind, SourceStatus } from '../io/types';
-import { displayedJoints, targetJoints } from './jointBus';
+import type { CaptureCloud } from '../io/captureCloud';
+import { armBuses, resetArmBuses, type ArmSlot } from './jointBus';
 import { diagnostics } from './diagnostics';
 
 const MAX_LOG_ENTRIES = 50;
@@ -40,6 +41,16 @@ interface SimulatorState {
   smoothing: number;
   showGrid: boolean;
   showJointAxes: boolean;
+  /** Plot uploaded pose/hand landmarks in the robot workspace. */
+  showCaptureCloud: boolean;
+  captureCloud: CaptureCloud | null;
+  /** Playback head, 0..1, used to highlight the current capture frame. */
+  playbackProgress: number;
+  /**
+   * Metres the bases slide toward the capture cloud along each arm's reach.
+   * IK targets are pulled in by the same amount so the pose stays reachable.
+   */
+  workspaceApproach: number;
   /** Run self-collision queries each frame. */
   checkSelfCollision: boolean;
   /** Also test links against the surface the robot is mounted on. */
@@ -48,6 +59,10 @@ interface SimulatorState {
   blockSelfCollision: boolean;
   collisionStatus: CollisionStatus;
   collisionStats: CollisionStats | null;
+  /** Second copy of the same robot, driven by the opposite hand/arm. */
+  dualArm: boolean;
+  /** Which arm the joint sliders write to when both are on stage. */
+  activeArm: ArmSlot;
   log: LogEntry[];
 
   robot: () => RobotDefinition;
@@ -61,10 +76,17 @@ interface SimulatorState {
   setSmoothing: (value: number) => void;
   toggleGrid: () => void;
   toggleJointAxes: () => void;
+  toggleCaptureCloud: () => void;
+  setCaptureCloud: (cloud: CaptureCloud | null) => void;
+  setPlaybackProgress: (progress: number) => void;
+  setWorkspaceApproach: (metres: number) => void;
   toggleSelfCollision: () => void;
   toggleGroundCollision: () => void;
   toggleBlockSelfCollision: () => void;
   setCollisionStatus: (status: CollisionStatus, stats?: CollisionStats) => void;
+  toggleDualArm: () => void;
+  setDualArm: (enabled: boolean) => void;
+  setActiveArm: (slot: ArmSlot) => void;
   pushLog: (level: LogEntry['level'], message: string) => void;
   clearLog: () => void;
   homeRobot: () => void;
@@ -90,11 +112,17 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
   smoothing: 0.25,
   showGrid: true,
   showJointAxes: false,
+  showCaptureCloud: true,
+  captureCloud: null,
+  playbackProgress: 0,
+  workspaceApproach: 0.05,
   checkSelfCollision: true,
   checkGroundCollision: true,
   blockSelfCollision: false,
   collisionStatus: 'idle',
   collisionStats: null,
+  dualArm: false,
+  activeArm: 'left',
   log: [],
 
   robot: () => definitionFor(get().robotId),
@@ -102,8 +130,7 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
   selectRobot: (id) => {
     if (id === get().robotId) return;
     const robot = definitionFor(id);
-    targetJoints.reset();
-    displayedJoints.reset();
+    resetArmBuses();
     diagnostics.reset();
     set({
       robotId: id,
@@ -114,6 +141,8 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
       statusDetail: '',
       collisionStatus: 'idle',
       collisionStats: null,
+      captureCloud: null,
+      playbackProgress: 0,
     });
   },
 
@@ -134,6 +163,16 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
   toggleGrid: () => set((state) => ({ showGrid: !state.showGrid })),
 
   toggleJointAxes: () => set((state) => ({ showJointAxes: !state.showJointAxes })),
+
+  toggleCaptureCloud: () => set((state) => ({ showCaptureCloud: !state.showCaptureCloud })),
+
+  setCaptureCloud: (cloud) => set({ captureCloud: cloud }),
+
+  setPlaybackProgress: (progress) =>
+    set({ playbackProgress: Math.min(1, Math.max(0, progress)) }),
+
+  setWorkspaceApproach: (metres) =>
+    set({ workspaceApproach: Math.min(0.1, Math.max(0, metres)) }),
 
   toggleSelfCollision: () =>
     set((state) => {
@@ -160,6 +199,21 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
   setCollisionStatus: (status, stats) =>
     set({ collisionStatus: status, ...(stats !== undefined ? { collisionStats: stats } : {}) }),
 
+  toggleDualArm: () => get().setDualArm(!get().dualArm),
+
+  setDualArm: (enabled) =>
+    set((state) => {
+      if (state.dualArm === enabled) return state;
+      if (!enabled) {
+        armBuses.right.target.reset();
+        armBuses.right.displayed.reset();
+        diagnostics.clearSlot('right');
+      }
+      return { dualArm: enabled, activeArm: enabled ? state.activeArm : 'left' };
+    }),
+
+  setActiveArm: (slot) => set({ activeArm: slot }),
+
   pushLog: (level, message) =>
     set((state) => {
       const last = state.log[0];
@@ -175,6 +229,7 @@ export const useSimulatorStore = create<SimulatorState>((set, get) => ({
     const robot = definitionFor(get().robotId);
     const home: Record<string, number> = {};
     for (const joint of robot.joints) home[joint.urdfName] = 0;
-    targetJoints.reset(home);
+    armBuses.left.target.reset(home);
+    if (get().dualArm) armBuses.right.target.reset({ ...home });
   },
 }));

@@ -1,12 +1,15 @@
 import { useEffect, useRef } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
-import { ContactShadows, Grid, GizmoHelper, GizmoViewport, OrbitControls } from '@react-three/drei';
+import { ContactShadows, Grid, GizmoHelper, GizmoViewport, Html, OrbitControls } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import type { RobotDefinition } from '../robots/types';
+import { armBuses } from '../state/jointBus';
 import { useSimulatorStore } from '../state/store';
 import type { UrdfState } from './useUrdfRobot';
 import { RobotModel } from './RobotModel';
 import { PlaceholderArm } from './PlaceholderArm';
+import { CaptureCloudPlot } from './CaptureCloud';
+import { DUAL_CAMERA, addOffset, approachWorldDelta, armPose } from './staging';
 
 interface SimulatorSceneProps {
   definition: RobotDefinition;
@@ -18,20 +21,26 @@ const BACKGROUND = '#eceff4';
 const GRID_CELL = '#d2d8e0';
 const GRID_SECTION = '#a9b3c1';
 
-/** Re-frames the camera whenever a different robot is selected. */
-function CameraRig({ definition }: { definition: RobotDefinition }) {
+/** Re-frames the camera whenever a different robot is selected or a second arm appears. */
+function CameraRig({
+  definition,
+  dualArm,
+}: {
+  definition: RobotDefinition;
+  dualArm: boolean;
+}) {
   const camera = useThree((state) => state.camera);
   const controls = useThree((state) => state.controls) as OrbitControlsImpl | null;
 
   useEffect(() => {
-    const [x, y, z] = definition.camera.position;
+    const [x, y, z] = dualArm ? DUAL_CAMERA.position : definition.camera.position;
     camera.position.set(x, y, z);
     if (controls) {
-      const [tx, ty, tz] = definition.camera.target;
+      const [tx, ty, tz] = dualArm ? DUAL_CAMERA.target : definition.camera.target;
       controls.target.set(tx, ty, tz);
       controls.update();
     }
-  }, [camera, controls, definition]);
+  }, [camera, controls, definition, dualArm]);
 
   return null;
 }
@@ -60,9 +69,26 @@ function Lighting() {
   );
 }
 
+function ArmLabel({ label, position }: { label: string; position: [number, number, number] }) {
+  return (
+    <Html position={position} center distanceFactor={2.4} style={{ pointerEvents: 'none' }}>
+      <div className="arm-label">{label}</div>
+    </Html>
+  );
+}
+
 export function SimulatorScene({ definition, urdf }: SimulatorSceneProps) {
   const showGrid = useSimulatorStore((state) => state.showGrid);
+  const dualArm = useSimulatorStore((state) => state.dualArm);
+  const workspaceApproach = useSimulatorStore((state) => state.workspaceApproach);
   const controlsRef = useRef<OrbitControlsImpl>(null);
+  const leftRobot = urdf.robots[0] ?? urdf.robot;
+  const rightRobot = urdf.robots[1] ?? null;
+  const cameraPosition = dualArm ? DUAL_CAMERA.position : definition.camera.position;
+  const leftPose = armPose('left', dualArm);
+  const rightPose = armPose('right', dualArm);
+  const leftOffset = addOffset(leftPose.offset, approachWorldDelta(leftPose.yaw, workspaceApproach));
+  const rightOffset = addOffset(rightPose.offset, approachWorldDelta(rightPose.yaw, workspaceApproach));
 
   return (
     <Canvas
@@ -70,8 +96,8 @@ export function SimulatorScene({ definition, urdf }: SimulatorSceneProps) {
       shadows="percentage"
       dpr={[1, 2]}
       camera={{
-        position: definition.camera.position,
-        fov: 42,
+        position: cameraPosition,
+        fov: dualArm ? 46 : 42,
         near: 0.01,
         far: 100,
       }}
@@ -82,16 +108,56 @@ export function SimulatorScene({ definition, urdf }: SimulatorSceneProps) {
 
       <Lighting />
 
-      {urdf.robot ? (
-        <RobotModel definition={definition} robot={urdf.robot} />
+      {leftRobot ? (
+        <RobotModel
+          definition={definition}
+          robot={leftRobot}
+          buses={armBuses.left}
+          slot="left"
+          offset={leftOffset}
+          yaw={leftPose.yaw}
+        />
       ) : (
-        <PlaceholderArm definition={definition} />
+        <PlaceholderArm
+          definition={definition}
+          buses={armBuses.left}
+          offset={leftOffset}
+          yaw={leftPose.yaw}
+        />
       )}
+
+      {dualArm &&
+        (rightRobot ? (
+          <RobotModel
+            definition={definition}
+            robot={rightRobot}
+            buses={armBuses.right}
+            slot="right"
+            offset={rightOffset}
+            yaw={rightPose.yaw}
+          />
+        ) : (
+          <PlaceholderArm
+            definition={definition}
+            buses={armBuses.right}
+            offset={rightOffset}
+            yaw={rightPose.yaw}
+          />
+        ))}
+
+      {dualArm && (
+        <>
+          <ArmLabel label="Right" position={[rightOffset[0], 0.32, rightOffset[2]]} />
+          <ArmLabel label="Left" position={[leftOffset[0], 0.32, leftOffset[2]]} />
+        </>
+      )}
+
+      <CaptureCloudPlot />
 
       <ContactShadows
         position={[0, 0.001, 0]}
         opacity={0.38}
-        scale={2}
+        scale={dualArm ? 3.2 : 2}
         blur={2.4}
         far={0.8}
         resolution={1024}
@@ -116,14 +182,14 @@ export function SimulatorScene({ definition, urdf }: SimulatorSceneProps) {
       <OrbitControls
         ref={controlsRef}
         makeDefault
-        target={definition.camera.target}
+        target={dualArm ? DUAL_CAMERA.target : definition.camera.target}
         enableDamping
         dampingFactor={0.08}
         minDistance={0.12}
         maxDistance={4}
         maxPolarAngle={Math.PI / 2 - 0.02}
       />
-      <CameraRig definition={definition} />
+      <CameraRig definition={definition} dualArm={dualArm} />
 
       <GizmoHelper alignment="bottom-right" margin={[72, 72]}>
         <GizmoViewport

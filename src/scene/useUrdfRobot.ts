@@ -9,6 +9,8 @@ export type UrdfStatus = 'loading' | 'ready' | 'error';
 
 export interface UrdfState {
   robot: URDFRobot | null;
+  /** Extra parsed copies, used when two arms share one URDF. */
+  robots: URDFRobot[];
   status: UrdfStatus;
   /** Populated when the URDF could not be fetched, is empty, or is malformed. */
   error: string;
@@ -20,6 +22,7 @@ export interface UrdfState {
 
 const INITIAL: UrdfState = {
   robot: null,
+  robots: [],
   status: 'loading',
   error: '',
   missingMeshes: [],
@@ -57,12 +60,13 @@ function disposeRobot(robot: URDFRobot): void {
  * is not a well-formed URDF. Distinguishing "not added yet" from "empty" from
  * "malformed" is what makes the missing-asset panel useful.
  */
-export function useUrdfRobot(definition: RobotDefinition): UrdfState {
+export function useUrdfRobot(definition: RobotDefinition, copies = 1): UrdfState {
   const [state, setState] = useState<UrdfState>(INITIAL);
+  const instanceCount = Math.max(1, copies);
 
   useEffect(() => {
     let cancelled = false;
-    let robot: URDFRobot | null = null;
+    const loaded: URDFRobot[] = [];
     let parsed = false;
     let pendingMeshes = 0;
     const missing: string[] = [];
@@ -138,25 +142,28 @@ export function useUrdfRobot(definition: RobotDefinition): UrdfState {
       };
 
       try {
-        robot = loader.parse(text);
+        for (let i = 0; i < instanceCount; i += 1) {
+          loaded.push(loader.parse(text));
+        }
       } catch (error) {
         fail(`Could not parse ${urdfUrl}: ${(error as Error).message}`);
         return;
       }
 
       if (cancelled) {
-        disposeRobot(robot);
-        robot = null;
+        for (const instance of loaded) disposeRobot(instance);
+        loaded.length = 0;
         return;
       }
 
       parsed = true;
       setState({
-        robot,
+        robot: loaded[0],
+        robots: loaded,
         status: pendingMeshes > 0 ? 'loading' : 'ready',
         error: '',
         missingMeshes: [...missing],
-        limits: readLimits(robot),
+        limits: readLimits(loaded[0]),
       });
     };
 
@@ -165,9 +172,9 @@ export function useUrdfRobot(definition: RobotDefinition): UrdfState {
     return () => {
       cancelled = true;
       controller.abort();
-      if (robot) disposeRobot(robot);
+      for (const instance of loaded) disposeRobot(instance);
     };
-  }, [definition]);
+  }, [definition, instanceCount]);
 
   return state;
 }

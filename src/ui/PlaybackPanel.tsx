@@ -1,13 +1,22 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
-import { PlaybackSource, parseTrajectoryFile } from '../io/playbackSource';
+import { DualPlaybackSource, PlaybackSource, parseTrajectoryFile } from '../io/playbackSource';
+import {
+  isHandCapture,
+  retargetHandCapture,
+  type HandMapping,
+  type HandRetargetResult,
+} from '../io/handRetarget';
 import {
   isPoseCapture,
   retargetPoseCapture,
   type ArmSide,
   type PoseMapping,
+  type PoseRetargetResult,
 } from '../io/poseRetarget';
 import type { RobotDefinition } from '../robots/types';
-import { targetJoints } from '../state/jointBus';
+import { buildCaptureCloud } from '../io/captureCloud';
+import { workspaceForApproach } from '../io/so101Ik';
+import { armBuses } from '../state/jointBus';
 import { diagnostics } from '../state/diagnostics';
 import { useSimulatorStore } from '../state/store';
 
@@ -23,42 +32,131 @@ export function PlaybackPanel({ definition }: { definition: RobotDefinition }) {
   const setStatus = useSimulatorStore((state) => state.setStatus);
   const pushLog = useSimulatorStore((state) => state.pushLog);
   const limits = useSimulatorStore((state) => state.limits);
+  const dualArm = useSimulatorStore((state) => state.dualArm);
+  const setDualArm = useSimulatorStore((state) => state.setDualArm);
+  const setCaptureCloud = useSimulatorStore((state) => state.setCaptureCloud);
+  const setPlaybackProgress = useSimulatorStore((state) => state.setPlaybackProgress);
+  const workspaceApproach = useSimulatorStore((state) => state.workspaceApproach);
 
   const [rawRecords, setRawRecords] = useState<unknown[] | null>(null);
-  const [pose, setPose] = useState(false);
+  const [captureKind, setCaptureKind] = useState<'pose' | 'hand' | null>(null);
   const [side, setSide] = useState<ArmSide | 'auto'>('auto');
-  const [mapping, setMapping] = useState<PoseMapping>('fit');
+  const [mapping, setMapping] = useState<HandMapping>('fit');
   const [fileName, setFileName] = useState('');
   const [speed, setSpeed] = useState(1);
   const [loop, setLoop] = useState(true);
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
 
-  const sourceRef = useRef<PlaybackSource | null>(null);
+  const sourceRef = useRef<PlaybackSource | DualPlaybackSource | null>(null);
+  const resumeRef = useRef({ progress: 0, playing: true });
   // Read at construction only; changing limits mid-clip should not restart it.
   const limitsRef = useRef(limits);
   limitsRef.current = limits;
 
-  // A pose capture holds body landmarks, not joint angles, so it is converted
-  // before it reaches the trajectory player.
-  const retargeted = useMemo(() => {
-    if (!rawRecords || !pose) return null;
-    return retargetPoseCapture(rawRecords, { robot: definition, limits, side, mapping });
-  }, [rawRecords, pose, definition, limits, side, mapping]);
+  const poseMapping: PoseMapping = mapping === 'ik' ? 'fit' : mapping;
+
+  // Landmark captures are converted before they reach the trajectory player.
+  // Body pose and hand tracking share the same UI shape, so both land here.
+  const retargeted = useMemo((): PoseRetargetResult | HandRetargetResult | null => {
+    if (!rawRecords || !captureKind || dualArm) return null;
+    if (captureKind === 'hand') {
+      return retargetHandCapture(rawRecords, {
+        robot: definition,
+        limits,
+        side,
+        mapping,
+        approach: workspaceApproach,
+      });
+    }
+    return retargetPoseCapture(rawRecords, { robot: definition, limits, side, mapping: poseMapping });
+  }, [rawRecords, captureKind, definition, limits, side, mapping, poseMapping, dualArm, workspaceApproach]);
+
+  const leftRetargeted = useMemo((): PoseRetargetResult | HandRetargetResult | null => {
+    if (!rawRecords || !captureKind || !dualArm) return null;
+    if (captureKind === 'hand') {
+      return retargetHandCapture(rawRecords, {
+        robot: definition,
+        limits,
+        side: 'left',
+        mapping,
+        approach: workspaceApproach,
+      });
+    }
+    return retargetPoseCapture(rawRecords, { robot: definition, limits, side: 'left', mapping: poseMapping });
+  }, [rawRecords, captureKind, definition, limits, mapping, poseMapping, dualArm, workspaceApproach]);
+
+  const rightRetargeted = useMemo((): PoseRetargetResult | HandRetargetResult | null => {
+    if (!rawRecords || !captureKind || !dualArm) return null;
+    if (captureKind === 'hand') {
+      return retargetHandCapture(rawRecords, {
+        robot: definition,
+        limits,
+        side: 'right',
+        mapping,
+        approach: workspaceApproach,
+      });
+    }
+    return retargetPoseCapture(rawRecords, { robot: definition, limits, side: 'right', mapping: poseMapping });
+  }, [rawRecords, captureKind, definition, limits, mapping, poseMapping, dualArm, workspaceApproach]);
 
   const records = retargeted ? retargeted.records : rawRecords;
 
   useEffect(() => {
+    if (captureKind === 'hand' && mapping === 'ik') setDualArm(true);
+    if (captureKind === 'pose' && mapping === 'ik') setMapping('fit');
+  }, [captureKind, mapping, setDualArm]);
+
+  useEffect(() => {
+    if (dualArm && leftRetargeted && rightRetargeted) {
+      pushLog(
+        'info',
+        `${captureKind === 'hand' ? 'Hand' : 'Pose'} capture, dual-arm${
+          mapping === 'ik' ? ' IK' : ''
+        }: left ${leftRetargeted.usableFrames} / right ${rightRetargeted.usableFrames} usable of ${leftRetargeted.totalFrames}.`,
+      );
+      return;
+    }
     if (!retargeted) return;
     pushLog(
       'info',
-      `Pose capture: ${retargeted.side} arm, ${retargeted.usableFrames} of ` +
+      `${captureKind === 'hand' ? 'Hand' : 'Pose'} capture: ${retargeted.side} arm, ${retargeted.usableFrames} of ` +
         `${retargeted.totalFrames} frames usable (${retargeted.detectedFrames} with a ` +
         `detection), longest gap ${retargeted.longestGapFrames} frames.`,
     );
-  }, [retargeted, pushLog]);
+  }, [retargeted, leftRetargeted, rightRetargeted, captureKind, dualArm, mapping, pushLog]);
 
   useEffect(() => {
+    const { progress: resumeAt, playing: wasPlaying } = resumeRef.current;
+
+    if (dualArm && captureKind && leftRetargeted && rightRetargeted) {
+      const source = new DualPlaybackSource(
+        { records: leftRetargeted.records, robot: definition, limits: limitsRef.current, fps: 30 },
+        { records: rightRetargeted.records, robot: definition, limits: limitsRef.current, fps: 30 },
+        { loop },
+      );
+      sourceRef.current = source;
+      source.start({
+        onLeft: (frame) => {
+          armBuses.left.target.apply(frame.positions);
+          if (frame.clamped?.length) diagnostics.markClamped(frame.clamped);
+        },
+        onRight: (frame) => {
+          armBuses.right.target.apply(frame.positions);
+          if (frame.clamped?.length) diagnostics.markClamped(frame.clamped);
+        },
+        onStatus: (status, detail) => setStatus(status, detail),
+      });
+      if (resumeAt > 0) source.seek(resumeAt);
+      if (!wasPlaying) source.pause();
+      setPlaying(source.isPlaying);
+      return () => {
+        resumeRef.current = { progress: source.progress, playing: source.isPlaying };
+        source.stop();
+        sourceRef.current = null;
+      };
+    }
+
     if (!records || records.length === 0) return;
 
     const source = new PlaybackSource({
@@ -72,22 +170,37 @@ export function PlaybackPanel({ definition }: { definition: RobotDefinition }) {
 
     source.start({
       onFrame: (frame) => {
-        targetJoints.apply(frame.positions);
+        armBuses.left.target.apply(frame.positions);
         if (frame.clamped?.length) diagnostics.markClamped(frame.clamped);
       },
       onStatus: (status, detail) => setStatus(status, detail),
     });
+    if (resumeAt > 0) source.seek(resumeAt);
+    if (!wasPlaying) source.pause();
     setPlaying(source.isPlaying);
 
     return () => {
+      resumeRef.current = { progress: source.progress, playing: source.isPlaying };
       source.stop();
       sourceRef.current = null;
     };
-  }, [records, definition, loop, setStatus]);
+  }, [records, leftRetargeted, rightRetargeted, captureKind, dualArm, definition, loop, setStatus]);
 
   useEffect(() => {
     sourceRef.current?.setSpeed(speed);
   }, [speed]);
+
+  useEffect(() => {
+    if (!rawRecords || !captureKind) {
+      setCaptureCloud(null);
+      return;
+    }
+    setCaptureCloud(
+      buildCaptureCloud(rawRecords, { workspace: workspaceForApproach(workspaceApproach) }),
+    );
+  }, [rawRecords, captureKind, workspaceApproach, setCaptureCloud]);
+
+  useEffect(() => () => setCaptureCloud(null), [setCaptureCloud]);
 
   useEffect(() => {
     let frameId = 0;
@@ -96,6 +209,7 @@ export function PlaybackPanel({ definition }: { definition: RobotDefinition }) {
       const source = sourceRef.current;
       if (!source) return;
       setProgress(source.progress);
+      setPlaybackProgress(source.progress);
       setPlaying(source.isPlaying);
     };
     frameId = requestAnimationFrame(tick);
@@ -109,16 +223,22 @@ export function PlaybackPanel({ definition }: { definition: RobotDefinition }) {
         pushLog('warn', `${label} contained no frames.`);
         return;
       }
-      const looksLikePose = isPoseCapture(parsed);
+      const kind = isHandCapture(parsed) ? 'hand' : isPoseCapture(parsed) ? 'pose' : null;
       setRawRecords(parsed);
-      setPose(looksLikePose);
+      setCaptureKind(kind);
       setFileName(label);
+      setPlaybackProgress(0);
       pushLog(
         'info',
-        looksLikePose
-          ? `Loaded ${parsed.length} pose frames from ${label}.`
-          : `Loaded ${parsed.length} frames from ${label}.`,
+        kind === 'hand'
+          ? `Loaded ${parsed.length} hand-tracking frames from ${label}.`
+          : kind === 'pose'
+            ? `Loaded ${parsed.length} pose frames from ${label}.`
+            : `Loaded ${parsed.length} frames from ${label}.`,
       );
+      if (kind) {
+        pushLog('info', 'Capture landmarks will be plotted in the robot workspace.');
+      }
     } catch (error) {
       pushLog('error', `Could not read ${label}: ${(error as Error).message}`);
     }
@@ -156,7 +276,7 @@ export function PlaybackPanel({ definition }: { definition: RobotDefinition }) {
           Choose file
           <input
             type="file"
-            accept=".json,.jsonl,.txt"
+            accept=".json,.jsonl,.txt,.csv,.tsv"
             onChange={onFileChange}
             hidden
           />
@@ -207,10 +327,13 @@ export function PlaybackPanel({ definition }: { definition: RobotDefinition }) {
                 id="pose-mapping"
                 className="select select--compact"
                 value={mapping}
-                onChange={(event) => setMapping(event.target.value as PoseMapping)}
+                onChange={(event) => setMapping(event.target.value as HandMapping)}
               >
                 <option value="fit">Fill joint range</option>
                 <option value="direct">Keep captured scale</option>
+                {captureKind === 'hand' && (
+                  <option value="ik">IK from index (both arms)</option>
+                )}
               </select>
             </div>
           </div>
@@ -224,7 +347,7 @@ export function PlaybackPanel({ definition }: { definition: RobotDefinition }) {
             . Longest gap {retargeted.longestGapFrames} frames, held as a still pose.
           </p>
 
-          {retargeted.calibration.pan && (
+          {captureKind === 'pose' && 'pan' in retargeted.calibration && retargeted.calibration.pan && (
             <p className="panel__hint">
               Shoulder swing spanned{' '}
               {(
@@ -245,8 +368,51 @@ export function PlaybackPanel({ definition }: { definition: RobotDefinition }) {
           )}
 
           <p className="panel__hint">
-            Shoulder pan, shoulder lift and elbow flex are driven. Wrist and gripper stay on
-            the manual sliders, since this capture has no hand landmarks.
+            {captureKind === 'hand'
+              ? mapping === 'ik'
+                ? 'Index fingertip position is mapped into the robot workspace and solved with 3-DOF IK (shoulder pan, lift, elbow). Wrist stays straight; roll and gripper still come from the palm. Hands landmarks are not metric — the workspace fit is a calibration.'
+                : 'Only wrist flex/roll and the gripper move. Shoulder and elbow stay put — this file has no upper-arm landmarks.'
+              : 'Shoulder pan, shoulder lift and elbow flex are driven. Wrist and gripper stay on the manual sliders, since this capture has no hand landmarks.'}
+          </p>
+        </>
+      )}
+
+      {dualArm && leftRetargeted && rightRetargeted && (
+        <>
+          <p className="panel__hint">
+            <strong>Left arm</strong> follows the subject&apos;s left (
+            {Math.round((leftRetargeted.usableFrames / Math.max(1, leftRetargeted.totalFrames)) * 100)}
+            % usable). <strong>Right arm</strong> follows the subject&apos;s right (
+            {Math.round((rightRetargeted.usableFrames / Math.max(1, rightRetargeted.totalFrames)) * 100)}
+            % usable).
+          </p>
+          <div className="field__row">
+            <div className="field">
+              <label htmlFor="pose-mapping-dual">Mapping</label>
+              <select
+                id="pose-mapping-dual"
+                className="select select--compact"
+                value={mapping}
+                onChange={(event) => setMapping(event.target.value as HandMapping)}
+              >
+                <option value="fit">Fill joint range</option>
+                <option value="direct">Keep captured scale</option>
+                {captureKind === 'hand' && (
+                  <option value="ik">IK from index (both arms)</option>
+                )}
+              </select>
+            </div>
+          </div>
+          <p className="panel__hint">
+            {captureKind === 'hand'
+              ? mapping === 'ik'
+                ? `Each arm reaches for that hand's index tip. Left solved ${
+                    'ikSolved' in leftRetargeted ? leftRetargeted.ikSolved : 0
+                  } / ${leftRetargeted.usableFrames} in reach, right ${
+                    'ikSolved' in rightRetargeted ? rightRetargeted.ikSolved : 0
+                  } / ${rightRetargeted.usableFrames}. Wrist stays straight; roll and gripper still come from the palm.`
+                : 'Each arm gets wrist and gripper from that hand. Shoulders and elbows stay put.'
+              : 'Each arm gets shoulder pan, lift and elbow from that side of the body.'}
           </p>
         </>
       )}
@@ -286,15 +452,19 @@ export function PlaybackPanel({ definition }: { definition: RobotDefinition }) {
             max={1}
             step={0.001}
             value={progress}
-            onChange={(event) => sourceRef.current?.seek(Number(event.target.value))}
+            onChange={(event) => {
+              const value = Number(event.target.value);
+              sourceRef.current?.seek(value);
+              setPlaybackProgress(value);
+            }}
             aria-label="Playback position"
           />
         </>
       )}
 
       <p className="panel__hint">
-        Accepts JSON Lines or a JSON array, holding either joint states or a MediaPipe pose
-        capture, which is retargeted to the arm automatically.
+        Accepts CSV, TSV, JSON Lines or a JSON array: joint states, a MediaPipe pose
+        capture, or a hand-tracking table with gripper_value and wrist landmarks.
       </p>
     </div>
   );

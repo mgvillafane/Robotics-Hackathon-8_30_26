@@ -13,6 +13,7 @@ import { ViewOptions } from './ui/ViewOptions';
 import { LogPanel } from './ui/LogPanel';
 import { StatusBar } from './ui/StatusBar';
 import { AssetNotice } from './ui/AssetNotice';
+import { CaptureCloudLegend } from './ui/CaptureCloudLegend';
 
 export default function App() {
   const robotId = useSimulatorStore((state) => state.robotId);
@@ -21,10 +22,12 @@ export default function App() {
   const setUrdfError = useSimulatorStore((state) => state.setUrdfError);
   const pushLog = useSimulatorStore((state) => state.pushLog);
 
+  const dualArm = useSimulatorStore((state) => state.dualArm);
+
   const definition = getRobot(robotId);
   if (!definition) throw new Error(`Unknown robot "${robotId}".`);
 
-  const urdf = useUrdfRobot(definition);
+  const urdf = useUrdfRobot(definition, dualArm ? 2 : 1);
   useJointStream(definition);
 
   useEffect(() => {
@@ -71,6 +74,7 @@ export default function App() {
           <div className="viewport__overlay">
             <AssetNotice definition={definition} urdf={urdf} />
           </div>
+          <CaptureCloudLegend />
           <CollisionBanner />
         </main>
       </div>

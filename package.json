@@ -14,7 +14,10 @@
     "demo": "node server/demo-publisher.mjs",
     "check:assets": "node scripts/check-assets.mjs",
     "inspect:pose": "node scripts/inspect-pose.mjs",
-    "verify:retarget": "node scripts/verify-retarget.mjs"
+    "inspect:hand": "node scripts/inspect-hand.mjs",
+    "verify:retarget": "node scripts/verify-retarget.mjs",
+    "verify:hand": "node scripts/verify-hand.mjs",
+    "verify:ik": "node scripts/verify-ik.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.8",

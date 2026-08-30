@@ -24,18 +24,34 @@ const BLOCK_WINDOW_MS = 250;
  * times a second.
  */
 class Diagnostics {
-  private collisions: CollisionPair[] = [];
+  private collisionsBySlot = new Map<string, CollisionPair[]>();
   private clampedAt = new Map<string, number>();
   private checkCostMs = 0;
   private lastBlockedAt = 0;
 
-  setCollisions(pairs: CollisionPair[]): void {
+  setCollisions(pairs: CollisionPair[], slot = 'left'): void {
     // Copy: callers reuse their array between frames.
-    this.collisions = pairs.map((pair) => ({ ...pair }));
+    this.collisionsBySlot.set(
+      slot,
+      pairs.map((pair) => ({
+        a: slot === 'left' ? pair.a : `${slot} ${pair.a}`,
+        b: slot === 'left' ? pair.b : `${slot} ${pair.b}`,
+      })),
+    );
+  }
+
+  clearSlot(slot: string): void {
+    this.collisionsBySlot.delete(slot);
   }
 
   getCollisions(): CollisionPair[] {
-    return this.collisions;
+    return this.mergedCollisions();
+  }
+
+  private mergedCollisions(): CollisionPair[] {
+    const merged: CollisionPair[] = [];
+    for (const pairs of this.collisionsBySlot.values()) merged.push(...pairs);
+    return merged;
   }
 
   markClamped(names: readonly string[]): void {
@@ -59,7 +75,7 @@ class Diagnostics {
   }
 
   reset(): void {
-    this.collisions = [];
+    this.collisionsBySlot.clear();
     this.clampedAt.clear();
     this.checkCostMs = 0;
     this.lastBlockedAt = 0;
@@ -73,7 +89,7 @@ class Diagnostics {
     }
     clampedJoints.sort();
 
-    const collisions = this.collisions;
+    const collisions = this.mergedCollisions();
     const blocking = now - this.lastBlockedAt < BLOCK_WINDOW_MS;
     const key = [
       collisions.map((pair) => `${pair.a}~${pair.b}`).join(','),

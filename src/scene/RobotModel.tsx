@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { AxesHelper, Box3, Group, MeshStandardMaterial } from 'three';
 import type { URDFRobot } from 'urdf-loader';
 import type { RobotDefinition } from '../robots/types';
-import { displayedJoints, targetJoints } from '../state/jointBus';
+import { armBuses, type ArmBuses, type ArmSlot } from '../state/jointBus';
 import { useSimulatorStore } from '../state/store';
 import { diagnostics, type CollisionPair } from '../state/diagnostics';
 import {
@@ -16,12 +16,25 @@ import {
 interface RobotModelProps {
   definition: RobotDefinition;
   robot: URDFRobot;
+  buses?: ArmBuses;
+  slot?: ArmSlot;
+  /** World-space base position. Dual-arm uses X as the shoulder line. */
+  offset?: [number, number, number];
+  /** Yaw about world Y, in radians. Dual-arm faces both grippers toward the camera. */
+  yaw?: number;
 }
 
 const AXES_SIZE = 0.04;
 const NO_LINKS: ReadonlySet<string> = new Set();
 
-export function RobotModel({ definition, robot }: RobotModelProps) {
+export function RobotModel({
+  definition,
+  robot,
+  buses = armBuses.left,
+  slot = 'left',
+  offset = [0, 0, 0],
+  yaw = 0,
+}: RobotModelProps) {
   const groundedRef = useRef<Group>(null);
   const showJointAxes = useSimulatorStore((state) => state.showJointAxes);
   const setCollisionStatus = useSimulatorStore((state) => state.setCollisionStatus);
@@ -94,26 +107,30 @@ export function RobotModel({ definition, robot }: RobotModelProps) {
           return;
         }
         collisionModel.current = model;
-        setCollisionStatus('ready', {
-          pairs: model.pairs.length,
-          ignoredAlways: model.ignoredAlways.length,
-          triangles: model.triangleCount,
-          buildMs: model.buildMs,
-        });
-        // Naming the excluded pairs makes it obvious which links are being
-        // watched, so a missing contact can be told from a filtered one.
-        pushLog(
-          'info',
-          `Collision model: ${model.pairs.length} link pairs, ${model.groundLinks.length} vs surface` +
-            (model.ignoredAlways.length > 0
-              ? `; always overlapping: ${model.ignoredAlways
-                  .map((pair) => `${pair.a}/${pair.b}`)
-                  .join(', ')}`
-              : ''),
-        );
+        if (slot === 'left') {
+          setCollisionStatus('ready', {
+            pairs: model.pairs.length,
+            ignoredAlways: model.ignoredAlways.length,
+            triangles: model.triangleCount,
+            buildMs: model.buildMs,
+          });
+          // Naming the excluded pairs makes it obvious which links are being
+          // watched, so a missing contact can be told from a filtered one.
+          pushLog(
+            'info',
+            `Collision model: ${model.pairs.length} link pairs, ${model.groundLinks.length} vs surface` +
+              (model.ignoredAlways.length > 0
+                ? `; always overlapping: ${model.ignoredAlways
+                    .map((pair) => `${pair.a}/${pair.b}`)
+                    .join(', ')}`
+                : ''),
+          );
+        }
       } catch (error) {
-        setCollisionStatus('unavailable');
-        pushLog('warn', `Self-collision checks unavailable: ${(error as Error).message}`);
+        if (slot === 'left') {
+          setCollisionStatus('unavailable');
+          pushLog('warn', `Self-collision checks unavailable: ${(error as Error).message}`);
+        }
       }
     }, 50);
 
@@ -123,7 +140,7 @@ export function RobotModel({ definition, robot }: RobotModelProps) {
       collisionModel.current?.dispose();
       collisionModel.current = null;
     };
-  }, [robot, setCollisionStatus, pushLog]);
+  }, [robot, slot, setCollisionStatus, pushLog]);
 
   useFrame((_state, delta) => {
     const { smoothing, checkSelfCollision, checkGroundCollision, blockSelfCollision } =
@@ -132,10 +149,10 @@ export function RobotModel({ definition, robot }: RobotModelProps) {
     const alpha = smoothing <= 0.001 ? 1 : 1 - Math.exp(-delta / smoothing);
 
     for (const joint of definition.joints) {
-      const target = targetJoints.get(joint.urdfName);
-      const current = displayedJoints.get(joint.urdfName);
+      const target = buses.target.get(joint.urdfName);
+      const current = buses.displayed.get(joint.urdfName);
       const next = alpha >= 1 ? target : current + (target - current) * alpha;
-      displayedJoints.set(joint.urdfName, next);
+      buses.displayed.set(joint.urdfName, next);
       robot.setJointValue(joint.urdfName, next);
     }
 
@@ -148,7 +165,7 @@ export function RobotModel({ definition, robot }: RobotModelProps) {
       }
       if (lastReportKey.current !== '') {
         lastReportKey.current = '';
-        diagnostics.setCollisions([]);
+        diagnostics.setCollisions([], slot);
       }
       return;
     }
@@ -165,7 +182,7 @@ export function RobotModel({ definition, robot }: RobotModelProps) {
     if (hits.length === 0) {
       const safe = lastSafePose.current;
       for (const joint of definition.joints) {
-        safe[joint.urdfName] = displayedJoints.get(joint.urdfName);
+        safe[joint.urdfName] = buses.displayed.get(joint.urdfName);
       }
     } else if (blockSelfCollision) {
       // Rewind to the last good pose before this frame reaches the screen.
@@ -176,7 +193,7 @@ export function RobotModel({ definition, robot }: RobotModelProps) {
       for (const joint of definition.joints) {
         const value = safe[joint.urdfName];
         if (value === undefined) continue;
-        displayedJoints.set(joint.urdfName, value);
+        buses.displayed.set(joint.urdfName, value);
         robot.setJointValue(joint.urdfName, value);
         restored = true;
       }
@@ -189,7 +206,7 @@ export function RobotModel({ definition, robot }: RobotModelProps) {
     const key = hits.map((pair) => `${pair.a}~${pair.b}`).join(',');
     if (key !== lastReportKey.current) {
       lastReportKey.current = key;
-      diagnostics.setCollisions(hits);
+      diagnostics.setCollisions(hits, slot);
 
       highlighted.current.clear();
       for (const pair of hits) {
@@ -201,12 +218,14 @@ export function RobotModel({ definition, robot }: RobotModelProps) {
   });
 
   return (
-    <group ref={groundedRef}>
-      <group
-        rotation={definition.upAxis === 'Z' ? [-Math.PI / 2, 0, 0] : [0, 0, 0]}
-        scale={definition.scale}
-      >
-        <primitive object={robot} />
+    <group position={offset} rotation={[0, yaw, 0]}>
+      <group ref={groundedRef}>
+        <group
+          rotation={definition.upAxis === 'Z' ? [-Math.PI / 2, 0, 0] : [0, 0, 0]}
+          scale={definition.scale}
+        >
+          <primitive object={robot} />
+        </group>
       </group>
     </group>
   );

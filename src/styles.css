@@ -133,6 +133,59 @@ a {
   pointer-events: auto;
 }
 
+.cloud-legend {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  background: rgba(22, 27, 34, 0.78);
+  color: var(--text);
+  font-size: 11.5px;
+  pointer-events: none;
+}
+
+.cloud-legend strong {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.cloud-legend__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cloud-legend__row span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cloud-legend__swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.cloud-legend__swatch--left {
+  background: #3f8ecc;
+}
+
+.cloud-legend__swatch--right {
+  background: #d2542c;
+}
+
+.cloud-legend__swatch--now {
+  background: #f4d35e;
+}
+
 /* ---------- panels ---------- */
 
 .panel {
@@ -530,6 +583,17 @@ a {
   .collision-banner__dot {
     animation: none;
   }
+}
+
+.arm-label {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(28, 32, 40, 0.72);
+  color: #fff;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 /* ---------- status bar ---------- */

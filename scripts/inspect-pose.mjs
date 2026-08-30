@@ -6,14 +6,18 @@
  * Usage: node scripts/inspect-pose.mjs <file.json>
  */
 import { readFileSync } from 'node:fs';
+import { register } from 'node:module';
+
+register('./ts-loader.mjs', import.meta.url);
+const { parseTrajectoryFile } = await import('../src/io/playbackSource.ts');
 
 const file = process.argv[2];
 if (!file) {
-  console.error('usage: node scripts/inspect-pose.mjs <file.json>');
+  console.error('usage: node scripts/inspect-pose.mjs <capture.json|.csv|.jsonl>');
   process.exit(1);
 }
 
-const frames = JSON.parse(readFileSync(file, 'utf8'));
+const frames = parseTrajectoryFile(readFileSync(file, 'utf8'));
 
 // Dropped frames are written as the string "nan", so every read has to be
 // checked rather than trusted; NaN comparisons silently pass every gate.

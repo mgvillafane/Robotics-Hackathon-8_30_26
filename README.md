@@ -36,7 +36,7 @@ Three input sources, chosen in the sidebar:
 | --- | --- |
 | Manual | Dragging sliders by hand |
 | WebSocket | A live robot or control loop |
-| Playback | Replaying a recorded `.jsonl` / `.json` trajectory |
+| Playback | Replaying a recorded `.csv` / `.jsonl` / `.json` trajectory |
 
 ### WebSocket
 
@@ -90,9 +90,12 @@ reads a connected SO-101 follower and forwards its observations.
 
 ### Playback
 
-Load a `.jsonl` file (one JSON frame per line) or a JSON array of frames. Frames
-carrying a `timestamp` play at their recorded pace; otherwise a fixed 30 fps is
-assumed. **Load sample** plays a bundled 20-second clip.
+Load a `.csv` or `.tsv` table, a `.jsonl` file (one JSON frame per line), or a
+JSON array of frames. Delimited files use their header row as field names, so a
+`shoulder_pan` column means what a `shoulder_pan` key would; quoted fields,
+semicolon and tab separators, CRLF endings and a leading byte-order mark are all
+handled. Frames carrying a `timestamp` play at their recorded pace; otherwise a
+fixed 30 fps is assumed. **Load sample** plays a bundled 20-second clip.
 
 ## Adding another arm
 
@@ -109,8 +112,10 @@ model before its meshes are installed.
 ## Driving the arm from a pose capture
 
 The playback panel also accepts a MediaPipe Pose export: one record per video
-frame, with flat `<landmark>_x/_y/_z/_visibility` keys. It is recognised on load
-and retargeted to the arm, so no conversion step is needed.
+frame, with flat `<landmark>_x/_y/_z/_visibility` fields. It is recognised on load
+and retargeted to the arm, so no conversion step is needed. CSV, TSV, JSON Lines
+and JSON arrays are all accepted, and a CSV column header behaves exactly like
+the JSON field of the same name.
 
 Only the shoulders, hips, and one arm's shoulder, elbow and wrist are read. From
 those, three angles are derived and mapped to `shoulder_pan`, `shoulder_lift` and
@@ -128,6 +133,52 @@ Angles are measured in a frame built from the body itself — the torso axis and
 the shoulder line — rather than from image axes. A subject who is reclining, or a
 camera that is rotated, therefore produces the same result as an upright one.
 
+### Hand-tracking CSV
+
+A hand-tracking table is recognised the same way. The export this was written
+against has `hand_detected`, `hand_label`, wrist / MCP / fingertip landmarks,
+an `other_*` record of the second hand, and a `gripper_value` already scaled 0
+(closed) to 1 (open). Empty cells and `"nan"` are treated as missing; do not
+coerce them with `Number`, because `Number("")` is 0 and would look like a
+wrist at the origin.
+
+This file has no shoulder or elbow, and wrist Z is the MediaPipe Hands origin.
+The default mappings therefore leave the upper arm alone: `gripper_value` drives
+the gripper, and palm orientation (wrist + MCPs) drives `wrist_flex` and
+`wrist_roll`. The same left/right toggle applies; `other_*` columns are used
+when the locked hand is the opposite side.
+
+**IK from index.** A third mapping treats the index fingertip as a Cartesian
+target. Each frame's tip is fitted into the SO-101 workspace (image X → robot Y,
+image Y-down → robot height, landmark Z → reach) and solved with analytic 3-DOF
+inverse kinematics for `shoulder_pan`, `shoulder_lift` and `elbow_flex`. The
+wrist is held straight; roll and the gripper still come from the palm. Hands
+landmarks are image-normalized, not metres, so the workspace fit is a
+calibration rather than a metric IK. Choosing this mapping turns **Two arms**
+on so the left index drives the left robot and the right index drives the
+right.
+
+**Capture points.** Loading a pose or hand table also plots its landmarks in
+the 3D scene, fitted into the same workspace the IK solver uses. Left is blue,
+right is orange, the current playback frame is yellow, and a wireframe box marks
+the workspace in front of each arm. Toggle it under View → Capture points.
+View → **Approach** folds the elbow, tucks the wrist, and keeps the plotted
+index trail in the same frame as the robot so the arm reaches the points
+instead of passing through them.
+
+**Two arms.** The View panel can put a second copy of the same robot on stage.
+Playback then sends the subject's left side to the left arm and the right side
+to the right arm, each with its own joint bus so they cannot overwrite each
+other. The joint sliders pick which arm they jog. This is two followers side by
+side, not a mirrored left-handed URDF.
+
+```bash
+npm run inspect:hand -- frames.csv
+npm run verify:hand -- frames.csv
+npm run verify:hand -- frames.csv auto ik
+npm run verify:ik
+```
+
 Real captures need more than the geometry, and three properties drive the rest of
 the design:
 
@@ -144,12 +195,13 @@ the design:
   shoulders'. Angles are damped and then rate-limited, which also keeps the
   output within something a real arm could follow.
 
-Two mapping modes are offered. Both centre the captured motion on the joint's
-mid-travel and differ only in gain: **fill joint range** stretches the observed
-range to fill the travel, which keeps a subject who barely moved visible, while
-**keep captured scale** transfers the human's angular scale one-to-one. Fill mode
-will not amplify by more than 1.5x, since stretching a narrow, noisy range would
-turn jitter into violent motion.
+Two mapping modes are offered for body-relative angles. Both centre the captured
+motion on the joint's mid-travel and differ only in gain: **fill joint range**
+stretches the observed range to fill the travel, which keeps a subject who
+barely moved visible, while **keep captured scale** transfers the human's
+angular scale one-to-one. Fill mode will not amplify by more than 1.5x, since
+stretching a narrow, noisy range would turn jitter into violent motion. Hand
+captures add a third mode, **IK from index**, described above.
 
 To inspect a capture before loading it:
 
@@ -225,7 +277,10 @@ configuration and connection status.
 | `npm run bridge` | HTTP-to-WebSocket relay |
 | `npm run check:assets` | Verify a robot's URDF and mesh references resolve |
 | `npm run inspect:pose -- <file>` | Summarise a pose capture's quality |
+| `npm run inspect:hand -- <file>` | Summarise a hand-tracking CSV |
+| `npm run verify:hand -- <file>` | Check hand retargeting is usable |
 | `npm run verify:retarget -- <file>` | Check retargeted output is usable |
+| `node scripts/verify-csv.mjs` | Test delimited import against its JSON equivalent |
 | `node scripts/verify-links.mjs` | Audit collision pair selection |
 | `node scripts/verify-collision.mjs` | Unit-test the collision math |
 

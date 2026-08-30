@@ -13,14 +13,15 @@ register('./ts-loader.mjs', import.meta.url);
 
 const [file, sideArg = 'auto', mappingArg = 'fit'] = process.argv.slice(2);
 if (!file) {
-  console.error('usage: node scripts/verify-retarget.mjs <capture.json> [side] [mapping]');
+  console.error('usage: node scripts/verify-retarget.mjs <capture.json|.csv> [side] [mapping]');
   process.exit(1);
 }
 
 const { retargetPoseCapture, isPoseCapture } = await import('../src/io/poseRetarget.ts');
+const { parseTrajectoryFile } = await import('../src/io/playbackSource.ts');
 const { so101 } = await import('../src/robots/definitions/so101.ts');
 
-const records = JSON.parse(readFileSync(file, 'utf8'));
+const records = parseTrajectoryFile(readFileSync(file, 'utf8'));
 console.log(`file: ${file}`);
 console.log(`recognised as a pose capture: ${isPoseCapture(records)}`);
 

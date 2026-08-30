@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import type { Group, Mesh } from 'three';
 import type { PlaceholderSegment, RobotDefinition } from '../robots/types';
-import { displayedJoints, targetJoints } from '../state/jointBus';
+import { armBuses, type ArmBuses } from '../state/jointBus';
 import { useSimulatorStore } from '../state/store';
 
 const LINK_COLOR = '#5b6472';
@@ -10,24 +10,32 @@ const ACCENT_COLOR = '#e0653a';
 const JOINT_COLOR = '#2c313a';
 
 /** Eases the displayed value toward the target, matching RobotModel's feel. */
-function useEasedJoint(name: string) {
+function useEasedJoint(name: string, buses: ArmBuses) {
   return (delta: number): number => {
     const { smoothing } = useSimulatorStore.getState();
     const alpha = smoothing <= 0.001 ? 1 : 1 - Math.exp(-delta / smoothing);
-    const target = targetJoints.get(name);
-    const current = displayedJoints.get(name);
+    const target = buses.target.get(name);
+    const current = buses.displayed.get(name);
     const next = alpha >= 1 ? target : current + (target - current) * alpha;
-    displayedJoints.set(name, next);
+    buses.displayed.set(name, next);
     return next;
   };
 }
 
-function Finger({ segment, side }: { segment: PlaceholderSegment; side: 1 | -1 }) {
+function Finger({
+  segment,
+  side,
+  buses,
+}: {
+  segment: PlaceholderSegment;
+  side: 1 | -1;
+  buses: ArmBuses;
+}) {
   const ref = useRef<Mesh>(null);
 
   useFrame(() => {
     // The parent Segment owns the easing; this only reads the result.
-    const value = displayedJoints.get(segment.joint);
+    const value = buses.displayed.get(segment.joint);
     // Treat the joint value as a half-opening angle mapped to a lateral offset.
     const spread = 0.008 + Math.max(0, value) * 0.022;
     if (ref.current) ref.current.position.x = side * spread;
@@ -44,13 +52,15 @@ function Finger({ segment, side }: { segment: PlaceholderSegment; side: 1 | -1 }
 function Segment({
   segments,
   index,
+  buses,
 }: {
   segments: PlaceholderSegment[];
   index: number;
+  buses: ArmBuses;
 }) {
   const segment = segments[index];
   const ref = useRef<Group>(null);
-  const ease = useEasedJoint(segment.joint);
+  const ease = useEasedJoint(segment.joint, buses);
 
   useFrame((_state, delta) => {
     const value = ease(delta);
@@ -70,8 +80,8 @@ function Segment({
 
       {segment.gripper ? (
         <>
-          <Finger segment={segment} side={1} />
-          <Finger segment={segment} side={-1} />
+          <Finger segment={segment} side={1} buses={buses} />
+          <Finger segment={segment} side={-1} buses={buses} />
         </>
       ) : (
         <mesh position={[0, segment.length / 2, 0]} castShadow>
@@ -82,7 +92,7 @@ function Segment({
 
       {next && (
         <group position={[0, segment.length, 0]}>
-          <Segment segments={segments} index={index + 1} />
+          <Segment segments={segments} index={index + 1} buses={buses} />
         </group>
       )}
     </group>
@@ -94,18 +104,28 @@ function Segment({
  * joint bus as the URDF robot, so the full input pipeline can be tested before
  * any meshes are installed.
  */
-export function PlaceholderArm({ definition }: { definition: RobotDefinition }) {
+export function PlaceholderArm({
+  definition,
+  buses = armBuses.left,
+  offset = [0, 0, 0] as [number, number, number],
+  yaw = 0,
+}: {
+  definition: RobotDefinition;
+  buses?: ArmBuses;
+  offset?: [number, number, number];
+  yaw?: number;
+}) {
   const segments = definition.placeholder;
   if (!segments || segments.length === 0) return null;
 
   return (
-    <group>
+    <group position={offset} rotation={[0, yaw, 0]}>
       <mesh position={[0, 0.008, 0]} receiveShadow castShadow>
         <cylinderGeometry args={[0.055, 0.065, 0.016, 32]} />
         <meshStandardMaterial color={JOINT_COLOR} roughness={0.6} metalness={0.2} />
       </mesh>
       <group position={[0, 0.016, 0]}>
-        <Segment segments={segments} index={0} />
+        <Segment segments={segments} index={0} buses={buses} />
       </group>
     </group>
   );

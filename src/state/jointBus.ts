@@ -5,7 +5,7 @@
  * would re-render the tree on every frame, so the renderer reads this object
  * directly inside its animation loop and the UI polls it at a lower rate.
  */
-class JointBus {
+export class JointBus {
   private positions: Record<string, number> = {};
   private revision = 0;
   private recentFrameTimes: number[] = [];
@@ -65,11 +65,39 @@ class JointBus {
   }
 }
 
-/** Positions requested by the input source. */
-export const targetJoints = new JointBus();
+export type ArmSlot = 'left' | 'right';
+
+export interface ArmBuses {
+  target: JointBus;
+  displayed: JointBus;
+}
+
+function createArmBuses(): ArmBuses {
+  return { target: new JointBus(), displayed: new JointBus() };
+}
+
+/**
+ * One bus pair per arm in the scene. A single-arm session only writes `left`;
+ * dual-arm playback writes left and right independently so the two models
+ * cannot overwrite each other.
+ */
+export const armBuses: Record<ArmSlot, ArmBuses> = {
+  left: createArmBuses(),
+  right: createArmBuses(),
+};
+
+/** Positions requested by the input source. Alias for the left (primary) arm. */
+export const targetJoints = armBuses.left.target;
 
 /**
  * Positions actually rendered. Equal to `targetJoints` unless smoothing is on,
  * in which case the renderer eases these toward the target each frame.
  */
-export const displayedJoints = new JointBus();
+export const displayedJoints = armBuses.left.displayed;
+
+export function resetArmBuses(): void {
+  armBuses.left.target.reset();
+  armBuses.left.displayed.reset();
+  armBuses.right.target.reset();
+  armBuses.right.displayed.reset();
+}
