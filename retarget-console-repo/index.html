@@ -1,4 +1,6 @@
 <title>kinematIQ</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap');
 
@@ -169,6 +171,11 @@
     position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block;
   }
   .stage video { object-fit: contain; background: #000; }
+  #simVideo { display: none; }
+  #rigFrame { display: block; }
+  .stage.sim-video-mode #simVideo { display: block; }
+  .stage.sim-video-mode #rigFrame { display: none; }
+  .stage.sim-video-mode #simPlaceholderMsg { display: none; }
   .stage .placeholder-msg {
     position: absolute; left: 12px; bottom: 12px;
     font-family: 'Sora', ui-sans-serif, sans-serif;
@@ -177,6 +184,7 @@
     padding: 4px 8px; border-radius: 4px; border: 1px solid var(--line);
     max-width: 80%;
   }
+  .stage .placeholder-msg.warn { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, var(--line)); }
 
   .transport {
     display: flex; align-items: center; gap: 10px;
@@ -217,6 +225,101 @@
   .btn.primary:hover { opacity: 0.9; color: var(--accent-ink); }
   input[type="file"] { display: none; }
   .filenote { color: var(--muted); font-family: 'Sora', ui-sans-serif, sans-serif; font-size: 12px; }
+
+  .gallery-card { margin-top: 16px; }
+  .gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+    gap: 12px;
+    padding: 12px 14px 14px;
+  }
+  .gallery-empty {
+    grid-column: 1 / -1;
+    padding: 20px 8px;
+    text-align: center;
+    font-family: 'Sora', ui-sans-serif, sans-serif;
+    font-size: 12.5px;
+    color: var(--muted);
+  }
+  .gallery-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 0;
+    border: 2px solid var(--line);
+    border-radius: 8px;
+    background: var(--panel-2);
+    cursor: pointer;
+    text-align: left;
+    overflow: hidden;
+    transition: border-color .15s, box-shadow .15s, transform .15s;
+  }
+  .gallery-item:hover {
+    border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+    transform: translateY(-1px);
+  }
+  .gallery-item.selected {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+  }
+  .gallery-thumb-wrap {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    background: #000;
+    overflow: hidden;
+  }
+  .gallery-thumb {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    pointer-events: none;
+  }
+  .gallery-play {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    color: #fff;
+    background: color-mix(in srgb, #000 28%, transparent);
+    opacity: 0;
+    transition: opacity .15s;
+  }
+  .gallery-item:hover .gallery-play,
+  .gallery-item.selected .gallery-play { opacity: 1; }
+  .gallery-meta {
+    padding: 0 10px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+  }
+  .gallery-title {
+    font-family: 'Sora', ui-sans-serif, sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .gallery-size {
+    font-family: 'Sora', ui-sans-serif, sans-serif;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .selected-clip-note {
+    font-family: 'Sora', ui-sans-serif, sans-serif;
+    font-size: 12px;
+    color: var(--muted);
+    flex: 1;
+    min-width: 120px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 
   .readout-row {
     margin-top: 8px;
@@ -339,12 +442,12 @@
     <div class="card">
       <div class="head">
         <span class="label">01 &middot; source</span>
-        <span class="hint">upload your mp4</span>
+        <span class="hint">pick a clip below to play here</span>
       </div>
       <div class="stage" id="videoStage">
         <video id="video" playsinline muted></video>
         <canvas id="overlay"></canvas>
-        <div class="placeholder-msg" id="placeholderMsg">no video loaded &mdash; showing sample motion on the trajectory clock. Upload an mp4 to overlay the skeleton on real footage.</div>
+        <div class="placeholder-msg" id="placeholderMsg">no video loaded &mdash; pick a clip from the gallery below to play it here.</div>
       </div>
       <div class="transport">
         <button class="iconbtn" id="playBtn" aria-label="Play / pause">&#9658;</button>
@@ -352,31 +455,29 @@
         <span class="time" id="timeReadout">0.00s / 5.20s</span>
       </div>
       <div class="fileroute">
-        <label class="btn primary" for="videoFile">Load video (.mp4)</label>
-        <input type="file" id="videoFile" accept="video/mp4,video/*">
+        <span class="selected-clip-note" id="selectedClipNote">no clip selected</span>
         <label class="btn" for="trajFile">Load trajectory (.json)</label>
         <input type="file" id="trajFile" accept="application/json">
         <button class="btn" id="resetSample">Use sample data</button>
         <span class="filenote" id="trajNote">sample: 5.2s pick&ndash;place&ndash;package loop</span>
       </div>
       <div class="fileroute procroute">
-        <label class="btn primary" for="procFile">Process new video&hellip;</label>
-        <input type="file" id="procFile" accept="video/mp4,video/*">
-        <span class="procname" id="procName">no file chosen</span>
         <label class="procfield">start s <input type="number" id="procStart" min="0" step="0.5" placeholder="0"></label>
         <label class="procfield">end s <input type="number" id="procEnd" min="0" step="0.5" placeholder="end"></label>
         <button class="btn" id="procRun" disabled>Run MediaPipe</button>
-        <span class="filenote" id="procStatus">tracks the hand on the server and builds the trajectory</span>
+        <span class="filenote" id="procStatus">select a gallery clip, then run MediaPipe to build a trajectory</span>
       </div>
     </div>
 
     <div class="card">
       <div class="head">
         <span class="label">02 &middot; simulation</span>
-        <span class="hint">SO-101 arm &mdash; driven by the retargeted pose</span>
+        <span class="hint" id="simHint">recorded sim clip or live arm rig</span>
       </div>
-      <div class="stage">
+      <div class="stage" id="simStage">
+        <video id="simVideo" playsinline muted></video>
         <iframe id="rigFrame" title="Arm simulation"></iframe>
+        <div class="placeholder-msg" id="simPlaceholderMsg">pick a gallery clip with a matching simulation video</div>
       </div>
       <div class="transport" style="justify-content: space-between;">
         <span class="filenote">contract: <code>postMessage({type:"pose-frame", t, angles, jointNames})</code></span>
@@ -399,6 +500,16 @@
 });
 parent.postMessage({type: 'pose-ready'}, '*'); // tells the console you're listening</pre>
       </details>
+    </div>
+  </div>
+
+  <div class="card gallery-card">
+    <div class="head">
+      <span class="label">video gallery</span>
+      <span class="hint">click a clip to play it in 01 &middot; source</span>
+    </div>
+    <div class="gallery" id="videoGallery">
+      <div class="gallery-empty">loading clips&hellip;</div>
     </div>
   </div>
 
@@ -675,6 +786,7 @@ parent.postMessage({type: 'pose-ready'}, '*'); // tells the console you're liste
   var stage = document.getElementById('videoStage');
 
   var hasVideo = false;
+  var hasSimVideo = false;
   var internalPlaying = false;
   var internalT = 0;
   var lastTick = null;
@@ -682,35 +794,228 @@ parent.postMessage({type: 'pose-ready'}, '*'); // tells the console you're liste
   function useVideoSrc(src){
     video.src = src;
     hasVideo = true;
-    placeholderMsg.style.display = 'none';
+    placeholderMsg.style.display = 'block';
+    placeholderMsg.classList.remove('warn');
+    placeholderMsg.textContent = 'loading video…';
     octx.clearRect(0, 0, overlay.width, overlay.height);
     video.load();
     video.play().catch(function(){});
+    syncSimVideoToSource(true);
   }
 
-  document.getElementById('videoFile').addEventListener('change', function(e){
-    var file = e.target.files[0];
-    if (!file) return;
-    useVideoSrc(URL.createObjectURL(file));
+  function useSimVideoSrc(src){
+    hasSimVideo = true;
+    simStage.classList.add('sim-video-mode');
+    simPlaceholderMsg.style.display = 'none';
+    simVideo.src = src;
+    simVideo.load();
+    if (!video.paused && hasVideo) simVideo.play().catch(function(){});
+    else syncSimVideoToSource(false);
+    pillSim.className = 'pill ok';
+    pillSim.innerHTML = '<span class="dot"></span>simulation: recorded clip';
+    simHint.textContent = 'synced to source clip';
+    simPing.textContent = 'playing recorded simulation';
+  }
+
+  function clearSimVideo(){
+    hasSimVideo = false;
+    simStage.classList.remove('sim-video-mode');
+    simVideo.removeAttribute('src');
+    simVideo.load();
+    simPlaceholderMsg.style.display = 'block';
+    simPlaceholderMsg.textContent = 'no simulation video for this clip';
+    simHint.textContent = 'live arm rig (no matching recording)';
+  }
+
+  function syncSimVideoToSource(alsoPlay){
+    if (!hasSimVideo || !hasVideo || !video.duration) return;
+    var t = video.currentTime;
+    if (simVideo.duration) t = t % simVideo.duration;
+    if (Math.abs(simVideo.currentTime - t) > 0.05) simVideo.currentTime = t;
+    if (alsoPlay) simVideo.play().catch(function(){});
+    else if (video.paused) simVideo.pause();
+  }
+
+  video.addEventListener('loadeddata', function(){
+    if (!hasVideo) return;
+    placeholderMsg.style.display = 'none';
+    placeholderMsg.classList.remove('warn');
   });
 
-  // ---------- process a new video through ../video_processing (server) ----------
-  var procFile = document.getElementById('procFile');
+  video.addEventListener('error', function(){
+    if (!hasVideo) return;
+    placeholderMsg.style.display = 'block';
+    placeholderMsg.classList.add('warn');
+    placeholderMsg.textContent = 'could not play this clip in the browser. Run: python transcode_web_videos.py (or use serve.py, which transcodes on first play).';
+  });
+
+  // ---------- videos/processed gallery + MediaPipe on the selected clip ----------
+  var videoGallery = document.getElementById('videoGallery');
+  var selectedClipNote = document.getElementById('selectedClipNote');
   var procRun = document.getElementById('procRun');
   var procStatus = document.getElementById('procStatus');
   var procRoute = document.querySelector('.procroute');
+  var catalogVideos = [];
+  var selectedVideoMeta = null;
 
-  procFile.addEventListener('change', function(){
-    var f = procFile.files[0];
-    document.getElementById('procName').textContent = f ? f.name : 'no file chosen';
-    procRun.disabled = !f;
-  });
+  function fmtBytes(n){
+    if (n >= 1073741824) return (n / 1073741824).toFixed(1) + ' GB';
+    if (n >= 1048576) return Math.round(n / 1048576) + ' MB';
+    if (n >= 1024) return Math.round(n / 1024) + ' KB';
+    return n + ' B';
+  }
+
+  function selectedVideo(){
+    return selectedVideoMeta;
+  }
+
+  function syncVideoButtons(){
+    procRun.disabled = !selectedVideoMeta;
+  }
+
+  function highlightGallerySelection(name){
+    videoGallery.querySelectorAll('.gallery-item').forEach(function(el){
+      el.classList.toggle('selected', el.getAttribute('data-name') === name);
+    });
+  }
+
+  function selectGalleryVideo(v, play){
+    selectedVideoMeta = v;
+    highlightGallerySelection(v.name);
+    selectedClipNote.textContent = v.name + (v.web_ready === false ? ' (transcoding on first play…)' : '');
+    syncVideoButtons();
+    if (v.simulation_url) useSimVideoSrc(v.simulation_url);
+    else clearSimVideo();
+    if (play !== false) useVideoSrc(v.url);
+    else if (v.simulation_url) {
+      simVideo.pause();
+      simVideo.currentTime = 0;
+    }
+  }
+
+  function buildGalleryItem(v){
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'gallery-item';
+    btn.setAttribute('data-name', v.name);
+    btn.setAttribute('data-url', v.url);
+    btn.setAttribute('aria-label', 'Play ' + v.name);
+
+    var thumbWrap = document.createElement('span');
+    thumbWrap.className = 'gallery-thumb-wrap';
+
+    var thumb = document.createElement('video');
+    thumb.className = 'gallery-thumb';
+    thumb.src = v.url;
+    thumb.preload = 'metadata';
+    thumb.muted = true;
+    thumb.playsInline = true;
+    thumb.setAttribute('aria-hidden', 'true');
+    thumb.addEventListener('loadeddata', function(){
+      if (thumb.currentTime < 0.1) thumb.currentTime = 0.5;
+    });
+
+    var play = document.createElement('span');
+    play.className = 'gallery-play';
+    play.innerHTML = '&#9658;';
+
+    thumbWrap.appendChild(thumb);
+    thumbWrap.appendChild(play);
+
+    var meta = document.createElement('span');
+    meta.className = 'gallery-meta';
+
+    var title = document.createElement('span');
+    title.className = 'gallery-title';
+    title.textContent = v.name;
+
+    var size = document.createElement('span');
+    size.className = 'gallery-size';
+    size.textContent = fmtBytes(v.bytes || 0);
+
+    meta.appendChild(title);
+    meta.appendChild(size);
+    btn.appendChild(thumbWrap);
+    btn.appendChild(meta);
+
+    btn.addEventListener('click', function(){
+      selectGalleryVideo(v, true);
+    });
+    return btn;
+  }
+
+  function populateVideos(videos){
+    catalogVideos = videos || [];
+    videoGallery.innerHTML = '';
+    if (!catalogVideos.length){
+      var empty = document.createElement('div');
+      empty.className = 'gallery-empty';
+      empty.textContent = 'no clips in videos/processed/ - add .mp4 files and refresh';
+      videoGallery.appendChild(empty);
+      selectedVideoMeta = null;
+      selectedClipNote.textContent = 'no clip selected';
+      syncVideoButtons();
+      procStatus.textContent = 'add .mp4 files to videos/processed/ and restart serve.py';
+      return;
+    }
+    catalogVideos.forEach(function(v){
+      videoGallery.appendChild(buildGalleryItem(v));
+    });
+    selectGalleryVideo(catalogVideos[0], false);
+    initDefaultSimIfNeeded();
+  }
+
+  function initDefaultSimIfNeeded(){
+    if (selectedVideoMeta && selectedVideoMeta.simulation_url) return;
+    fetch('/sim-status').then(function(r){ return r.json(); })
+      .then(function(s){
+        if (selectedVideoMeta && selectedVideoMeta.simulation_url) return;
+        if (s && s.built) loadArmSimulator(); else loadReferenceRig();
+      })
+      .catch(function(){
+        if (!selectedVideoMeta || !selectedVideoMeta.simulation_url) loadReferenceRig();
+      });
+  }
+
+  function loadVideoCatalog(){
+    function useCatalog(j){
+      if (!j || !j.ok) throw new Error('bad catalog');
+      populateVideos(j.videos || []);
+    }
+    return fetch('/api/videos')
+      .then(function(r){
+        if (!r.ok) throw new Error('api unavailable');
+        return r.json();
+      })
+      .then(useCatalog)
+      .catch(function(){
+        return fetch('/videos/processed/manifest.json')
+          .then(function(r){
+            if (!r.ok) throw new Error('manifest missing');
+            return r.json();
+          })
+          .then(useCatalog);
+      })
+      .catch(function(){
+        videoGallery.innerHTML = '';
+        var empty = document.createElement('div');
+        empty.className = 'gallery-empty';
+        empty.textContent = 'could not load clips. For gallery playback: cd retarget-console-repo && python3 -m http.server 8000. For MediaPipe: pip install -r requirements.txt && python serve.py';
+        videoGallery.appendChild(empty);
+        selectedVideoMeta = null;
+        selectedClipNote.textContent = 'no clip selected';
+        syncVideoButtons();
+        procStatus.textContent = 'install flask (pip install -r requirements.txt) and run python serve.py for processing';
+      });
+  }
+
+  loadVideoCatalog();
 
   procRun.addEventListener('click', function(){
-    var f = procFile.files[0];
-    if (!f) return;
+    var v = selectedVideo();
+    if (!v) return;
     var fd = new FormData();
-    fd.append('video', f);
+    fd.append('video_name', v.name);
     var s = document.getElementById('procStart').value;
     var e = document.getElementById('procEnd').value;
     if (s !== '') fd.append('start_s', s);
@@ -722,14 +1027,14 @@ parent.postMessage({type: 'pose-ready'}, '*'); // tells the console you're liste
     var tick = setInterval(function(){
       procStatus.textContent = 'processing on the server… ' + Math.round((Date.now()-t0)/1000) + 's (MediaPipe on CPU, ~real-time)';
     }, 1000);
-    procStatus.textContent = 'uploading…';
+    procStatus.textContent = 'starting…';
 
     fetch('/api/process', { method: 'POST', body: fd })
       .then(function(r){ return r.json().then(function(j){ return { ok: r.ok, j: j }; }); })
       .then(function(res){
         clearInterval(tick);
         procRoute.classList.remove('busy');
-        procRun.disabled = false;
+        syncVideoButtons();
         if (!res.ok || !res.j.ok){
           procStatus.textContent = 'failed: ' + (res.j && (res.j.error || res.j.stderr) || 'server error');
           return;
@@ -746,14 +1051,20 @@ parent.postMessage({type: 'pose-ready'}, '*'); // tells the console you're liste
       .catch(function(err){
         clearInterval(tick);
         procRoute.classList.remove('busy');
-        procRun.disabled = false;
+        syncVideoButtons();
         procStatus.textContent = 'failed: ' + err.message + ' (is serve.py running?)';
       });
   });
 
   playBtn.addEventListener('click', function(){
     if (hasVideo){
-      if (video.paused) video.play(); else video.pause();
+      if (video.paused) {
+        video.play();
+        if (hasSimVideo) simVideo.play().catch(function(){});
+      } else {
+        video.pause();
+        if (hasSimVideo) simVideo.pause();
+      }
     } else {
       internalPlaying = !internalPlaying;
       lastTick = null;
@@ -767,6 +1078,7 @@ parent.postMessage({type: 'pose-ready'}, '*'); // tells the console you're liste
     var frac = scrub.value/1000;
     if (hasVideo && video.duration) {
       video.currentTime = frac * video.duration;
+      syncSimVideoToSource(false);
     } else {
       internalT = frac * traj.duration;
     }
@@ -838,7 +1150,11 @@ parent.postMessage({type: 'pose-ready'}, '*'); // tells the console you're liste
   var jointEls = JOINT_LABELS.map(function(_,i){ return document.getElementById('jv'+i); });
   var jointCards = JOINT_LABELS.map(function(_,i){ return document.getElementById('jointCard'+i); });
 
-  // ---------- sim iframe: reference rig, or your own sim by URL ----------
+  // ---------- sim panel: recorded clip or live iframe rig ----------
+  var simStage = document.getElementById('simStage');
+  var simVideo = document.getElementById('simVideo');
+  var simPlaceholderMsg = document.getElementById('simPlaceholderMsg');
+  var simHint = document.getElementById('simHint');
   var rigFrame = document.getElementById('rigFrame');
   var simReady = false;
   var pillSim = document.getElementById('pillSim');
@@ -860,6 +1176,8 @@ parent.postMessage({type: 'pose-ready'}, '*'); // tells the console you're liste
   }
 
   function loadReferenceRig(){
+    clearSimVideo();
+    rigFrame.style.display = 'block';
     rigFrame.removeAttribute('src');
     rigFrame.srcdoc = document.getElementById('rigTemplate').innerHTML;
     simUrlInput.value = '';
@@ -867,6 +1185,8 @@ parent.postMessage({type: 'pose-ready'}, '*'); // tells the console you're liste
   }
 
   function loadCustomSim(url){
+    clearSimVideo();
+    rigFrame.style.display = 'block';
     rigFrame.removeAttribute('srcdoc');
     rigFrame.src = url;
     armSimReadyCheck();
@@ -889,11 +1209,6 @@ parent.postMessage({type: 'pose-ready'}, '*'); // tells the console you're liste
       pillSim.innerHTML = '<span class="dot"></span>simulation: ready';
     }
   });
-
-  // Prefer the SO-101 simulator; fall back to the built-in 2D rig if it isn't built.
-  fetch('/sim-status').then(function(r){ return r.json(); })
-    .then(function(s){ if (s && s.built) loadArmSimulator(); else loadReferenceRig(); })
-    .catch(function(){ loadReferenceRig(); });
 
   // ---------- joint-limit + slew transform: raw retargeted angles -> applied angles ----------
   var appliedPrev = null;   // last angles actually sent, for the slew-rate limiter
@@ -968,6 +1283,8 @@ parent.postMessage({type: 'pose-ready'}, '*'); // tells the console you're liste
     // SIMULATION panel.
     if (hasVideo) octx.clearRect(0, 0, overlay.width, overlay.height);
     else drawSkeleton(angles);
+
+    if (hasSimVideo && hasVideo && !video.paused) syncSimVideoToSource(false);
 
     jointEls.forEach(function(el,i){
       el.innerHTML = angles[i].toFixed(1) + '<span class="deg">&deg;</span>';

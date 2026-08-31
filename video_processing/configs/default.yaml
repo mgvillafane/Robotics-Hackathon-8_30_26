@@ -18,7 +18,7 @@ selection:
   max_gap_frames: 15
 
 features:
-  source: normalized_2d
+  source: world_3d
   scale_mode: wrist_middle_mcp
   scale_median_window: 21
   min_scale: 0.0001
@@ -54,6 +54,8 @@ events:
 visualization:
   plot_window_s: 4.0
   hud_scale: 1.0
+  depth_cue: true
+  depth_y_shift: 0.12
 
 output:
   write_parquet: true

@@ -21,22 +21,85 @@ STATE_COLORS = {
 }
 
 
-def _px(point: np.ndarray, width: int, height: int) -> tuple[int, int]:
-    x = int(np.clip(point[0], 0.0, 1.0) * (width - 1))
-    y = int(np.clip(point[1], 0.0, 1.0) * (height - 1))
-    return x, y
+def _relative_depth(point: np.ndarray, wrist_z: float) -> float:
+    """MediaPipe image z: smaller values are closer to the camera."""
+    if point.size < 3:
+        return 0.0
+    return float(wrist_z - point[2])
 
 
-def draw_hand(frame: np.ndarray, hand: HandObservation, color: tuple[int, int, int]) -> None:
+def _project_point(
+    point: np.ndarray,
+    width: int,
+    height: int,
+    wrist_z: float,
+    *,
+    depth_cue: bool,
+    y_shift: float,
+) -> tuple[tuple[int, int], float]:
+    x = float(point[0])
+    y = float(point[1])
+    rel = _relative_depth(point, wrist_z)
+    scale = 1.0
+    if depth_cue:
+        scale = float(np.clip(1.0 + rel * 10.0, 0.55, 1.45))
+        y -= rel * y_shift
+    px = int(np.clip(x, 0.0, 1.0) * (width - 1))
+    py = int(np.clip(y, 0.0, 1.0) * (height - 1))
+    return (px, py), scale
+
+
+def _blend_toward_white(color: tuple[int, int, int], amount: float) -> tuple[int, int, int]:
+    amount = float(np.clip(amount, 0.0, 1.0))
+    return tuple(int(c + (255 - c) * amount) for c in color)
+
+
+def draw_hand(
+    frame: np.ndarray,
+    hand: HandObservation,
+    color: tuple[int, int, int],
+    *,
+    depth_cue: bool = True,
+    depth_y_shift: float = 0.12,
+) -> None:
     h, w = frame.shape[:2]
-    pts = [_px(lm, w, h) for lm in hand.landmarks]
+    wrist_z = float(hand.landmarks[0, 2]) if hand.landmarks.shape[1] >= 3 else 0.0
+    pts: list[tuple[int, int]] = []
+    scales: list[float] = []
+    for lm in hand.landmarks:
+        (px, py), scale = _project_point(
+            lm,
+            w,
+            h,
+            wrist_z,
+            depth_cue=depth_cue,
+            y_shift=depth_y_shift,
+        )
+        pts.append((px, py))
+        scales.append(scale)
+
+    rel_depths = [_relative_depth(lm, wrist_z) for lm in hand.landmarks]
+    zmin = min(rel_depths)
+    zmax = max(rel_depths)
+    zspan = max(zmax - zmin, 1e-6)
+
     for a, b in HAND_CONNECTIONS:
-        cv2.line(frame, pts[a], pts[b], color, 2, cv2.LINE_AA)
-    for x, y in pts:
-        cv2.circle(frame, (x, y), 3, color, -1, cv2.LINE_AA)
-    cv2.circle(frame, pts[4], 6, (0, 255, 255), 2, cv2.LINE_AA)
-    cv2.circle(frame, pts[8], 6, (0, 255, 255), 2, cv2.LINE_AA)
-    cv2.line(frame, pts[4], pts[8], (0, 255, 255), 2, cv2.LINE_AA)
+        rel = 0.5 * (rel_depths[a] + rel_depths[b])
+        t = (rel - zmin) / zspan
+        line_color = _blend_toward_white(color, 0.35 * (1.0 - t)) if depth_cue else color
+        thickness = max(1, int(round(2 * 0.5 * (scales[a] + scales[b]))))
+        cv2.line(frame, pts[a], pts[b], line_color, thickness, cv2.LINE_AA)
+
+    for i, ((px, py), scale) in enumerate(zip(pts, scales)):
+        t = (rel_depths[i] - zmin) / zspan
+        pt_color = _blend_toward_white(color, 0.25 * (1.0 - t)) if depth_cue else color
+        radius = max(2, int(round(3 * scale)))
+        cv2.circle(frame, (px, py), radius, pt_color, -1, cv2.LINE_AA)
+
+    for idx in (4, 8):
+        radius = max(4, int(round(6 * scales[idx])))
+        cv2.circle(frame, pts[idx], radius, (0, 255, 255), 2, cv2.LINE_AA)
+    cv2.line(frame, pts[4], pts[8], (0, 255, 255), max(1, int(round(2 * scales[4]))), cv2.LINE_AA)
 
 
 def draw_hud(
@@ -133,7 +196,6 @@ class SignalStrip:
             if rel < 0 or rel >= len(vals):
                 continue
             x = x0 + int(rel / max(len(vals) - 1, 1) * width)
-            color = (40, 80, 255) if "GRASP" in name and "RELEASE" not in name else (40, 220, 80)
             if name == "GRASP_RELEASE":
                 color = (40, 220, 80)
             elif name == "GRASP_START":
@@ -158,9 +220,21 @@ def render_overlay_frame(
 ) -> np.ndarray:
     out = frame.copy()
     for hand in others:
-        draw_hand(out, hand, (180, 140, 80))
+        draw_hand(
+            out,
+            hand,
+            (180, 140, 80),
+            depth_cue=config.depth_cue,
+            depth_y_shift=config.depth_y_shift,
+        )
     if primary is not None:
-        draw_hand(out, primary, (80, 220, 80))
+        draw_hand(
+            out,
+            primary,
+            (80, 220, 80),
+            depth_cue=config.depth_cue,
+            depth_y_shift=config.depth_y_shift,
+        )
     draw_hud(
         out,
         hand_label=hand_label,

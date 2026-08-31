@@ -90,7 +90,7 @@ Full 1080p clips should pass `--resize-width 720` so iteration stays interactive
 
 All thresholds live in [`configs/default.yaml`](configs/default.yaml). Pass `--config other.yaml` to overlay a file; CLI flags win last.
 
-Hand scale defaults to `distance(wrist, middle_MCP)` with a 21-frame rolling median. Instantaneous palm length is unstable in this head-mounted fisheye footage (strong foreshortening as the palm rotates). Distances use aspect-corrected MediaPipe coordinates so a horizontal pinch and a vertical pinch measure the same. `palm_width` and `bone_median` are available in config if that scale starts to wobble.
+Hand scale defaults to `distance(wrist, middle_MCP)` with a 21-frame rolling median, computed in **MediaPipe world coordinates** (`features.source: world_3d`) so thumb–index distance uses true 3D geometry instead of flattened image z. Image-space landmarks (`thumb_x/y/z`) are still exported for overlay; metric coords are in `thumb_world_x/y/z`, etc. For legacy image-normalized geometry, set `features.source: image_3d`.
 
 On the first vertical slice (`ui-previews/garment-folding-general/clip_3ehh7nbm5rnhw.mp4`) the primary-hand lock held, detection on the locked hand was ~81%, and auto-calibration landed near `closed=0.24`, `open=0.81`. Full 1080p clips should pass `--resize-width 720` so tracking stays near 15–20 fps on CPU.
 

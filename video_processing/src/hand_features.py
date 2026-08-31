@@ -27,11 +27,16 @@ BONE_PAIRS = (
 
 
 def aspect_corrected_points(landmarks: np.ndarray, aspect: float) -> np.ndarray:
-    """Stretch x so that normalized MediaPipe coords are isotropic in image space."""
+    """Stretch x and z so normalized MediaPipe coords are isotropic in image space.
+
+    MediaPipe x and z share the image-width normalization; y uses image height.
+    """
     out = np.asarray(landmarks, dtype=np.float64).copy()
     if out.ndim != 2 or out.shape[1] < 2:
         raise ValueError("landmarks must be (N, 2+) ")
     out[:, 0] = out[:, 0] * aspect
+    if out.shape[1] >= 3:
+        out[:, 2] = out[:, 2] * aspect
     return out
 
 
@@ -42,19 +47,21 @@ def euclidean(a: np.ndarray, b: np.ndarray) -> float:
     return float(np.linalg.norm(a[:n] - b[:n]))
 
 
-def select_source_landmarks(hand: HandObservation, source: str) -> np.ndarray:
-    if source == "world_3d":
-        if hand.world_landmarks is None:
-            return hand.landmarks
-        return hand.world_landmarks
-    return hand.landmarks
+def select_source_landmarks(hand: HandObservation, source: str) -> tuple[np.ndarray, str]:
+    if source in {"world_3d", "world"}:
+        if hand.world_landmarks is not None:
+            return hand.world_landmarks, "world_3d"
+        return hand.landmarks, "image_3d"
+    if source in {"normalized_3d", "image_3d", "normalized_2d"}:
+        return hand.landmarks, "image_3d"
+    raise ValueError(f"Unknown feature source: {source}")
 
 
-def prepare_landmarks(hand: HandObservation, source: str, aspect: float) -> np.ndarray:
-    points = select_source_landmarks(hand, source)
-    if source == "world_3d":
-        return np.asarray(points, dtype=np.float64)
-    return aspect_corrected_points(points, aspect)
+def prepare_landmarks(hand: HandObservation, source: str, aspect: float) -> tuple[np.ndarray, str]:
+    points, resolved = select_source_landmarks(hand, source)
+    if resolved == "world_3d":
+        return np.asarray(points, dtype=np.float64), resolved
+    return aspect_corrected_points(points, aspect), resolved
 
 
 def thumb_index_distance(points: np.ndarray) -> float:
@@ -111,7 +118,10 @@ class FeatureExtractor:
     def extract(self, hand: HandObservation | None) -> HandFeatures | None:
         if hand is None:
             return None
-        points = prepare_landmarks(hand, self.config.source, self.aspect)
+        try:
+            points, _resolved = prepare_landmarks(hand, self.config.source, self.aspect)
+        except ValueError:
+            return None
         distance = thumb_index_distance(points)
         raw_scale = compute_hand_scale(points, self.config.scale_mode, self.config.min_scale)
         if np.isfinite(raw_scale):

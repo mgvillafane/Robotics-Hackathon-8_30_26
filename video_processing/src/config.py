@@ -55,7 +55,7 @@ class SelectionConfig:
 
 @dataclass
 class FeaturesConfig:
-    source: str = "normalized_2d"
+    source: str = "world_3d"
     scale_mode: str = "wrist_middle_mcp"
     scale_median_window: int = 21
     min_scale: float = 1e-4
@@ -99,6 +99,8 @@ class EventsConfig:
 class VisualizationConfig:
     plot_window_s: float = 4.0
     hud_scale: float = 1.0
+    depth_cue: bool = True
+    depth_y_shift: float = 0.12
 
 
 @dataclass

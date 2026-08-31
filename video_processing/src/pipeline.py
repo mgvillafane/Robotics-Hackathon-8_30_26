@@ -81,6 +81,14 @@ def _xyz(point: np.ndarray | None) -> tuple[float, float, float]:
     return float(arr[0]), float(arr[1]), z
 
 
+def _world_xyz(world: np.ndarray | None, index: int) -> tuple[float, float, float]:
+    if world is None or index >= len(world):
+        return (float("nan"), float("nan"), float("nan"))
+    arr = np.asarray(world[index], dtype=np.float64)
+    z = float(arr[2]) if arr.size > 2 else float("nan")
+    return float(arr[0]), float(arr[1]), z
+
+
 def records_to_frame_table(records: list[FrameRecord]) -> pd.DataFrame:
     rows = []
     for rec in records:
@@ -93,6 +101,10 @@ def records_to_frame_table(records: list[FrameRecord]) -> pd.DataFrame:
         otx, oty, otz = _xyz(rec.other_thumb)
         oix, oiy, oiz = _xyz(rec.other_index)
         owx, owy, owz = _xyz(rec.other_wrist)
+        world = rec.primary.world_landmarks if rec.primary is not None else None
+        twx, twy, twz = _world_xyz(world, 4)
+        iwx, iwy, iwz = _world_xyz(world, 8)
+        wwx, wwy, wwz = _world_xyz(world, 0)
         rows.append(
             {
                 "frame": rec.frame,
@@ -121,6 +133,15 @@ def records_to_frame_table(records: list[FrameRecord]) -> pd.DataFrame:
                 "middle_tip_x": mtx,
                 "middle_tip_y": mty,
                 "middle_tip_z": mtz,
+                "thumb_world_x": twx,
+                "thumb_world_y": twy,
+                "thumb_world_z": twz,
+                "index_world_x": iwx,
+                "index_world_y": iwy,
+                "index_world_z": iwz,
+                "wrist_world_x": wwx,
+                "wrist_world_y": wwy,
+                "wrist_world_z": wwz,
                 "other_hand_label": rec.other_hand_label,
                 "other_thumb_x": otx,
                 "other_thumb_y": oty,

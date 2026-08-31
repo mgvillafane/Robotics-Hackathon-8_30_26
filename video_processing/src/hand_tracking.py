@@ -163,6 +163,10 @@ class MediaPipeHandTracker:
         import cv2
 
         rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
+        if not rgb.flags["C_CONTIGUOUS"]:
+            rgb = np.ascontiguousarray(rgb)
+        if rgb.dtype != np.uint8:
+            rgb = rgb.astype(np.uint8, copy=False)
         image = self._mp.Image(image_format=self._mp.ImageFormat.SRGB, data=rgb)
         timestamp_ms = max(0, int(round(timestamp_s * 1000.0)))
         result = self._landmarker.detect_for_video(image, timestamp_ms)
